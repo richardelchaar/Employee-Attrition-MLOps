@@ -1,6 +1,8 @@
+
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 
 [project]
 name = "module1"
@@ -15,14 +17,54 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License"
 ]
-dependencies = [
-    "mkdocs",
-    "pip",
-    "pytest",
-    "python-dotenv",
-    "ruff",
-]
-requires-python = "~=3.10.0"
+
+
+
+
+requires-python = "~=3.12.0"
+
+[tool.poetry.dependencies]
+mkdocs = "*"
+pip = "*"
+imbalanced-learn ="*"
+pytest = "^7.2.0"
+python-dotenv = "^1.0.0"
+ruff = "*"
+pandas = "^2.0.0"
+numpy = "^1.24.0"
+scikit-learn = "^1.2.0"
+matplotlib = "^3.7.0"
+seaborn = "^0.12.0"
+jupyter = "^1.0.0"
+ipykernel = "^6.20.0"
+scipy = "^1.10.0"
+statsmodels = "^0.14.0"
+# Course 1 Specific
+dowhy = "*"
+# MLOps
+mlflow = "^2.1.0" # Use a specific recent version
+fastapi = "^0.95.0"
+uvicorn = {extras = ["standard"], version = "^0.21.0"}
+requests = "^2.28.0"
+# XAI & Fairness
+shap = "^0.41.0"
+fairml = "^0.1.0" # Or fairlearn
+# AutoML
+tpot = "^0.11.7" # Check for latest TPOT version
+# Drift Detection
+evidently = "^0.3.0"
+# Other utilities
+joblib = "^1.2.0"
+pydantic = {extras = ["email"], version = "^1.10.7"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+black = "^23.1.0"
+flake8 = "^6.0.0"
+ipywidgets = "^8.0.0"
+
+
+
 
 
 [tool.ruff]
