@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/5c39b854fb2a4d6ca5ec17917d39d4ad/artifacts
+end_time: 1744960143048
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 5c39b854fb2a4d6ca5ec17917d39d4ad
+run_name: clumsy-boar-209
+run_uuid: 5c39b854fb2a4d6ca5ec17917d39d4ad
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960142990
+status: 3
+tags: []
+user_id: richard

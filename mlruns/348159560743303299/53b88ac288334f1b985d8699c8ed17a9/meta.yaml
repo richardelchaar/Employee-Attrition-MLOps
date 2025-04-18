@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/53b88ac288334f1b985d8699c8ed17a9/artifacts
+end_time: 1744960061654
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 53b88ac288334f1b985d8699c8ed17a9
+run_name: victorious-stoat-137
+run_uuid: 53b88ac288334f1b985d8699c8ed17a9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960061617
+status: 3
+tags: []
+user_id: richard
