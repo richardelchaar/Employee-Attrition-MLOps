@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/e5dd9fd7392a4dffbe4b991b0a3d8989/artifacts
+end_time: 1744960056962
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: e5dd9fd7392a4dffbe4b991b0a3d8989
+run_name: bustling-elk-761
+run_uuid: e5dd9fd7392a4dffbe4b991b0a3d8989
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960056914
+status: 3
+tags: []
+user_id: richard

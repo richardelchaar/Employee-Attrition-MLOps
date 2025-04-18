@@ -8,11 +8,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFE, SelectFromModel
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
+# Ensure AddNewFeaturesTransformer is imported correctly
 from .data_processing import (AddNewFeaturesTransformer, CustomOrdinalEncoder,
                                 LogTransformSkewed, BoxCoxSkewedTransformer)
 from .config import (BUSINESS_TRAVEL_MAPPING, RANDOM_STATE)
 # from .outlier_removal import IsolationForestRemover # If implementing
 import logging
+import numpy as np # Import numpy
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,7 @@ def create_preprocessing_pipeline(
 
     # --- Assemble ColumnTransformer ---
     transformers = []
+    # Check if lists are not empty before adding
     if numerical_cols:
         transformers.append(('num', numeric_pipeline, numerical_cols))
     if ordinal_cols:
@@ -91,12 +94,18 @@ def create_preprocessing_pipeline(
     if categorical_cols:
         transformers.append(('cat', other_categorical_pipeline, categorical_cols))
     if business_travel_col and business_pipeline != 'drop':
-            # Use the specific pipeline created for business travel
             transformers.append(('bus', business_pipeline, business_travel_col))
+
+    # Handle case where no columns are selected (should ideally not happen with this dataset)
+    if not transformers:
+            logger.warning("No transformers specified for ColumnTransformer!")
+            # Return a 'passthrough' equivalent or handle error
+            return ColumnTransformer(transformers=[], remainder='passthrough')
+
 
     preprocessor = ColumnTransformer(
         transformers=transformers,
-        remainder='drop', # Ensure only specified columns are kept
+        remainder='drop', # Drop columns not specified in any transformer
         verbose_feature_names_out=False # Keep feature names cleaner
     )
     preprocessor.set_output(transform="pandas") # Keep as DataFrame
@@ -120,19 +129,26 @@ def create_full_pipeline(
     # --- Feature Selection ---
     feature_selector_params = feature_selector_params or {}
     if feature_selector_type == 'rfe':
+        # RFE needs an estimator. Using Logistic Regression as a default.
+        # Consider making the RFE estimator configurable if needed.
         rfe_estimator = LogisticRegression(max_iter=500, random_state=RANDOM_STATE, solver='liblinear')
         n_features = feature_selector_params.get('n_features_to_select', 10)
         feature_selector = RFE(estimator=rfe_estimator, n_features_to_select=n_features)
         logger.info(f"Using RFE feature selection with n_features={n_features}")
     elif feature_selector_type == 'lasso':
-        lasso_estimator = LogisticRegression(penalty='l1', solver='liblinear', random_state=RANDOM_STATE, **feature_selector_params)
-        feature_selector = SelectFromModel(estimator=lasso_estimator, prefit=False)
+        # Ensure solver is compatible with L1 penalty
+        lasso_solver = feature_selector_params.get('solver', 'liblinear') # Default solver
+        lasso_estimator = LogisticRegression(penalty='l1', solver=lasso_solver, random_state=RANDOM_STATE, **feature_selector_params)
+        feature_selector = SelectFromModel(estimator=lasso_estimator, prefit=False) # Let pipeline fit it
         logger.info("Using Lasso (SelectFromModel) feature selection")
     elif feature_selector_type == 'tree':
         # Default to RF if no estimator specified in params
+        # Extract estimator-specific params if provided (e.g., estimator__n_estimators)
         tree_estimator_params = {k.replace('estimator__',''):v for k,v in feature_selector_params.items() if k.startswith('estimator__')}
-        tree_estimator = feature_selector_params.get('estimator', RandomForestClassifier(random_state=RANDOM_STATE, **tree_estimator_params))
-        threshold = feature_selector_params.get('threshold', 'median')
+        # Get the estimator class or default to RandomForestClassifier
+        tree_estimator_class = feature_selector_params.get('estimator', RandomForestClassifier)
+        tree_estimator = tree_estimator_class(random_state=RANDOM_STATE, **tree_estimator_params)
+        threshold = feature_selector_params.get('threshold', 'median') # Default threshold
         feature_selector = SelectFromModel(estimator=tree_estimator, threshold=threshold, prefit=False)
         logger.info(f"Using Tree (SelectFromModel) feature selection with threshold={threshold}")
     else:
@@ -147,14 +163,19 @@ def create_full_pipeline(
     logger.info(f"Using classifier: {classifier_class.__name__} with params: {model_params}")
 
     # --- Assemble Pipeline ---
-    # Use ImbPipeline to handle SMOTE correctly
+    # Use ImbPipeline from imblearn to handle SMOTE correctly
     full_pipeline = ImbPipeline([
+        # *** ADDED FEATURE ENGINEERING STEP HERE ***
+        ('feature_eng', AddNewFeaturesTransformer()),
+        # Preprocessing step using the ColumnTransformer
         ('preprocessor', preprocessor),
         # Add ('outlier', OutlierRemover(...)) here if implementing
+        # Feature selection step
         ('feature_selection', feature_selector),
+        # SMOTE step
         smote_step,
+        # Final classifier
         ('classifier', classifier)
     ], verbose=False) # Set verbose=True for debugging steps
 
     return full_pipeline
-

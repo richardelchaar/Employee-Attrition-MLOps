@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/97c342d445fe4977b387a0c55d444241/artifacts
+end_time: 1744960067365
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 97c342d445fe4977b387a0c55d444241
+run_name: lyrical-rat-759
+run_uuid: 97c342d445fe4977b387a0c55d444241
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960067303
+status: 3
+tags: []
+user_id: richard

@@ -11,8 +11,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 # load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
 
 # --- File Paths ---
-RAW_DATA_PATH = os.path.join(PROJECT_ROOT, "data/01_raw/WA_Fn-UseC_-HR-Employee-Attrition.csv")
-REPORTS_PATH = os.path.join(PROJECT_ROOT, "data/08_reporting/")
+RAW_DATA_PATH = os.path.join(PROJECT_ROOT, "data/raw/WA_Fn-UseC_-HR-Employee-Attrition.csv")
+REPORTS_PATH = os.path.join(PROJECT_ROOT, "reports/")
 BASELINE_PROFILE_FILENAME = "training_data_profile.json"
 DRIFT_REPORT_FILENAME = "drift_report.json"
 

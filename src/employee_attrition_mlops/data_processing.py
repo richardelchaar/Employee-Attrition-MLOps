@@ -10,6 +10,145 @@ logger = logging.getLogger(__name__)
 
 # --- Custom Transformers (Implementations from Course 1 needed here) ---
 
+class BoxCoxSkewedTransformer(BaseEstimator, TransformerMixin):
+    """
+    Applies Box-Cox transformation to specified skewed columns.
+    Handles non-positive values by adding a shift before transformation.
+    """
+    def __init__(self, skewed_cols=None):
+        # Ensure skewed_cols is a list or None
+        if skewed_cols is not None and not isinstance(skewed_cols, list):
+             self.skewed_cols = [skewed_cols] # Handle single column name
+        else:
+             self.skewed_cols = skewed_cols if skewed_cols is not None else []
+        self.lambdas_ = {} # Stores fitted lambda for each column
+        self.shifts_ = {} # Stores shift applied for non-positive columns
+
+    def fit(self, X, y=None):
+        """
+        Fits the Box-Cox transformation by finding the optimal lambda for each specified column.
+        Calculates necessary shifts for non-positive columns.
+        """
+        # Store feature names for get_feature_names_out
+        self.feature_names_in_ = list(X.columns)
+        # Filter to only columns present in X
+        self.valid_skewed_cols_ = [col for col in self.skewed_cols if col in X.columns]
+        if len(self.valid_skewed_cols_) != len(self.skewed_cols):
+            missing = set(self.skewed_cols) - set(self.valid_skewed_cols_)
+            logger.warning(f"Columns not found for BoxCoxSkewedTransformer during fit: {missing}")
+
+        logger.info(f"Fitting BoxCox for columns: {self.valid_skewed_cols_}")
+        for col in self.valid_skewed_cols_:
+            col_data = X[col]
+            # Check if column is numeric
+            if not pd.api.types.is_numeric_dtype(col_data):
+                logger.warning(f"Column '{col}' is not numeric. Skipping BoxCox fit.")
+                self.lambdas_[col] = None
+                self.shifts_[col] = 0
+                continue
+
+            min_val = col_data.min()
+            shift = 0
+            # Box-Cox requires positive values
+            if min_val <= 0:
+                shift = abs(min_val) + 1e-6 # Add a small epsilon to ensure positivity
+                logger.warning(f"Column '{col}' contains non-positive values. Applying shift: {shift:.6f}")
+            self.shifts_[col] = shift
+
+            # Fit Box-Cox to find optimal lambda
+            try:
+                # Ensure no NaNs before fitting boxcox
+                data_to_fit = col_data.dropna() + shift
+                if data_to_fit.empty or not np.all(data_to_fit > 0):
+                     logger.error(f"Cannot fit BoxCox on column '{col}' after shift/dropna (empty or still non-positive). Skipping.")
+                     self.lambdas_[col] = None
+                     self.shifts_[col] = 0 # Reset shift if fit fails
+                     continue
+
+                fitted_lambda = boxcox(data_to_fit, lmbda=None) # lmbda=None finds optimal lambda
+                self.lambdas_[col] = fitted_lambda[1] # Store the lambda value
+                logger.info(f"Fitted BoxCox for '{col}'. Lambda: {self.lambdas_[col]:.4f}, Shift: {self.shifts_[col]:.6f}")
+
+            except ValueError as e:
+                 # Box-Cox can fail if data is constant or has other issues
+                 logger.error(f"BoxCox fit failed for column '{col}': {e}. Skipping transform for this column.")
+                 self.lambdas_[col] = None # Mark as failed
+                 self.shifts_[col] = 0 # Reset shift if fit fails
+            except Exception as e:
+                 logger.error(f"Unexpected error during BoxCox fit for column '{col}': {e}", exc_info=True)
+                 self.lambdas_[col] = None
+                 self.shifts_[col] = 0
+
+        return self
+
+    def transform(self, X):
+        """Applies the fitted Box-Cox transformation to the specified columns."""
+        X_ = X.copy()
+        logger.info(f"Applying BoxCox transform to columns: {list(self.lambdas_.keys())}")
+
+        for col, lmbda in self.lambdas_.items():
+            if lmbda is not None and col in X_.columns:
+                shift = self.shifts_.get(col, 0)
+                col_data = X_[col]
+
+                # Check if column is numeric before transforming
+                if not pd.api.types.is_numeric_dtype(col_data):
+                    logger.warning(f"Column '{col}' is not numeric. Skipping BoxCox transform.")
+                    continue
+
+                # Apply shift
+                data_to_transform = col_data + shift
+
+                # Handle potential NaNs introduced by shift or already present
+                original_nans = col_data.isnull()
+                if data_to_transform.isnull().any():
+                     logger.warning(f"NaNs present in column '{col}' before BoxCox application.")
+                     # BoxCox function might handle NaNs or raise error depending on version/usage
+                     # Apply transform only to non-NaNs
+                     not_nan_mask = ~data_to_transform.isnull()
+                     if not_nan_mask.any(): # Only transform if there are non-NaN values
+                          try:
+                              transformed_values = boxcox(data_to_transform[not_nan_mask], lmbda=lmbda)
+                              # Create a series with NaNs in original positions
+                              result_col = pd.Series(np.nan, index=X_.index, dtype=float)
+                              result_col[not_nan_mask] = transformed_values
+                              X_[col] = result_col
+                          except Exception as e:
+                               logger.error(f"Error applying BoxCox transform to non-NaN part of '{col}': {e}. Leaving column untransformed.")
+                     else:
+                          logger.warning(f"Column '{col}' contains only NaNs after shift. Leaving untransformed.")
+
+                elif not np.all(data_to_transform > 0):
+                     logger.error(f"Column '{col}' still contains non-positive values after shift ({data_to_transform.min()}). Cannot apply BoxCox. Leaving untransformed.")
+                else:
+                     # Apply Box-Cox transform directly if no NaNs and all positive
+                     try:
+                          X_[col] = boxcox(data_to_transform, lmbda=lmbda)
+                     except Exception as e:
+                          logger.error(f"Error applying BoxCox transform to '{col}': {e}. Leaving column untransformed.")
+
+            elif col in X_.columns:
+                 # Only log warning if lambda was expected but is None (fit failed)
+                 if col in self.valid_skewed_cols_ and lmbda is None:
+                      logger.warning(f"Skipping BoxCox transform for '{col}' as lambda was not successfully fitted.")
+            # else: column not found, already warned in fit
+
+        return X_
+
+    def get_feature_names_out(self, input_features=None):
+         """Returns feature names, which are unchanged by this transformer."""
+         if input_features is None:
+             # Use stored names from fit if available
+             if hasattr(self, 'feature_names_in_'):
+                 return np.array(self.feature_names_in_)
+             else:
+                 # This should ideally not happen if fit was called
+                 logger.error("Transformer has not been fitted yet. Cannot determine output feature names.")
+                 return None # Or raise error
+         else:
+             # Input features provided, assume they are the output names
+             return np.array(input_features)
+
 class AddNewFeaturesTransformer(BaseEstimator, TransformerMixin):
     """Adds AgeAtJoining, TenureRatio, IncomePerYearExp features."""
     def __init__(self):

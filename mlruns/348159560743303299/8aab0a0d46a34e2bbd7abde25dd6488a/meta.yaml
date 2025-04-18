@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/8aab0a0d46a34e2bbd7abde25dd6488a/artifacts
+end_time: 1744960057430
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 8aab0a0d46a34e2bbd7abde25dd6488a
+run_name: handsome-squid-27
+run_uuid: 8aab0a0d46a34e2bbd7abde25dd6488a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960057367
+status: 3
+tags: []
+user_id: richard

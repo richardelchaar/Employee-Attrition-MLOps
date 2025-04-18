@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/82afa507a2fe4ed1879f395881abc2a7/artifacts
+end_time: 1744960153725
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 82afa507a2fe4ed1879f395881abc2a7
+run_name: logistic_regression_HPO_Study
+run_uuid: 82afa507a2fe4ed1879f395881abc2a7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960054555
+status: 3
+tags: []
+user_id: richard

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/eb5d8075949c4cddb6677cf639151865/artifacts
+end_time: 1744960066205
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: eb5d8075949c4cddb6677cf639151865
+run_name: welcoming-gnu-504
+run_uuid: eb5d8075949c4cddb6677cf639151865
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960066166
+status: 3
+tags: []
+user_id: richard

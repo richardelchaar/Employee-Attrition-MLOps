@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/348159560743303299/08056006281344f482923595caae089d/artifacts
+end_time: 1744960112162
+entry_point_name: ''
+experiment_id: '348159560743303299'
+lifecycle_stage: active
+run_id: 08056006281344f482923595caae089d
+run_name: incongruous-bee-633
+run_uuid: 08056006281344f482923595caae089d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1744960112110
+status: 3
+tags: []
+user_id: richard

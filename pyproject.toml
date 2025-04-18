@@ -25,6 +25,7 @@ requires-python = "~=3.12.0"
 
 [tool.poetry.dependencies]
 mkdocs = "*"
+optuna ="*"
 pip = "*"
 imbalanced-learn ="*"
 pytest = "^7.2.0"
@@ -69,13 +70,13 @@ ipywidgets = "^8.0.0"
 
 [tool.ruff]
 line-length = 99
-src = ["module1"]
-include = ["pyproject.toml", "module1/**/*.py"]
+src = ["src"]
+include = ["pyproject.toml", "src/employee_attrition_mlops/**/*.py"]
 
 [tool.ruff.lint]
 extend-select = ["I"]  # Add import sorting
 
 [tool.ruff.lint.isort]
-known-first-party = ["module1"]
+known-first-party = ["src"]
 force-sort-within-sections = true
 
