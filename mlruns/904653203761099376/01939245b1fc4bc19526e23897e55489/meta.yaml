@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/01939245b1fc4bc19526e23897e55489/artifacts
+end_time: 1745290722950
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 01939245b1fc4bc19526e23897e55489
+run_name: masked-stag-689
+run_uuid: 01939245b1fc4bc19526e23897e55489
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290722906
+status: 3
+tags: []
+user_id: richard

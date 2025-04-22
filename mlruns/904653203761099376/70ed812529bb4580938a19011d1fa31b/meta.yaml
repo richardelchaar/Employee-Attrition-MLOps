@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/70ed812529bb4580938a19011d1fa31b/artifacts
+end_time: 1745290725053
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 70ed812529bb4580938a19011d1fa31b
+run_name: dashing-owl-337
+run_uuid: 70ed812529bb4580938a19011d1fa31b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290725010
+status: 3
+tags: []
+user_id: richard

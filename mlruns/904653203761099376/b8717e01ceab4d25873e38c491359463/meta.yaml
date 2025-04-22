@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/b8717e01ceab4d25873e38c491359463/artifacts
+end_time: 1745290726168
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: b8717e01ceab4d25873e38c491359463
+run_name: nebulous-conch-707
+run_uuid: b8717e01ceab4d25873e38c491359463
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290726124
+status: 3
+tags: []
+user_id: richard

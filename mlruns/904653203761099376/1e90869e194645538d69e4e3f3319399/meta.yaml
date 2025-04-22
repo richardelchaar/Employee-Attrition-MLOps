@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/1e90869e194645538d69e4e3f3319399/artifacts
+end_time: 1745290716867
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 1e90869e194645538d69e4e3f3319399
+run_name: wise-snail-497
+run_uuid: 1e90869e194645538d69e4e3f3319399
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290716819
+status: 3
+tags: []
+user_id: richard

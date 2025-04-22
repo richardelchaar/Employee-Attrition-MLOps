@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/fcfe5b9a0b3f40a684334535cc28fa4e/artifacts
+end_time: 1745290727267
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: fcfe5b9a0b3f40a684334535cc28fa4e
+run_name: bouncy-stoat-518
+run_uuid: fcfe5b9a0b3f40a684334535cc28fa4e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290727227
+status: 4
+tags: []
+user_id: richard
