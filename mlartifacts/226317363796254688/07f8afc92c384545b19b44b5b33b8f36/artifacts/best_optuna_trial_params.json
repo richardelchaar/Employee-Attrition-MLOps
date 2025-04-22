@@ -1,0 +1,14 @@
+{
+  "pipe_num_transform": "boxcox",
+  "pipe_num_scaler": "minmax",
+  "pipe_bt_encoder": "onehot",
+  "pipe_selector": "lasso",
+  "pipe_smote": true,
+  "selector_lasso_C": 0.0060937330816632105,
+  "model_solver": "liblinear",
+  "model_penalty_liblinear": "l1",
+  "model_C": 1.278836355413628,
+  "model_max_iter": 960,
+  "model_class_weight": "balanced",
+  "model_type": "logistic_regression"
+}
