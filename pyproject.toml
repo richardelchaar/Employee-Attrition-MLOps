@@ -21,11 +21,13 @@ classifiers = [
 
 
 
-requires-python = "~=3.12.0"
+requires-python = "~=3.11.0"
 
 [tool.poetry.dependencies]
 mkdocs = "*"
 optuna ="*"
+sqlalchemy ="*"
+pyodbc = "*"
 pip = "*"
 imbalanced-learn ="*"
 pytest = "^7.2.0"

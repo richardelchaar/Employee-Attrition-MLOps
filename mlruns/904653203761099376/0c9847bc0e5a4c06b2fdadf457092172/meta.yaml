@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/0c9847bc0e5a4c06b2fdadf457092172/artifacts
+end_time: 1745290719843
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 0c9847bc0e5a4c06b2fdadf457092172
+run_name: dazzling-ox-619
+run_uuid: 0c9847bc0e5a4c06b2fdadf457092172
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290719811
+status: 3
+tags: []
+user_id: richard

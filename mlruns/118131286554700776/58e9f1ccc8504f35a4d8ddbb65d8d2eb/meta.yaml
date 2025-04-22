@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/118131286554700776/58e9f1ccc8504f35a4d8ddbb65d8d2eb/artifacts
+end_time: 1745290675459
+entry_point_name: ''
+experiment_id: '118131286554700776'
+lifecycle_stage: active
+run_id: 58e9f1ccc8504f35a4d8ddbb65d8d2eb
+run_name: Optuna_Optimize_Train_Select_hpo_logic
+run_uuid: 58e9f1ccc8504f35a4d8ddbb65d8d2eb
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290662037
+status: 4
+tags: []
+user_id: richard

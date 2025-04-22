@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/d7ee3600fe4f4d61b0dfb805532203b9/artifacts
+end_time: 1745290723895
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: d7ee3600fe4f4d61b0dfb805532203b9
+run_name: stately-panda-169
+run_uuid: d7ee3600fe4f4d61b0dfb805532203b9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290723849
+status: 3
+tags: []
+user_id: richard

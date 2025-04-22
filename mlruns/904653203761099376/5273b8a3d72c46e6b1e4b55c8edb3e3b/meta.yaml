@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/5273b8a3d72c46e6b1e4b55c8edb3e3b/artifacts
+end_time: 1745290716232
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 5273b8a3d72c46e6b1e4b55c8edb3e3b
+run_name: sneaky-snail-782
+run_uuid: 5273b8a3d72c46e6b1e4b55c8edb3e3b
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290716182
+status: 3
+tags: []
+user_id: richard

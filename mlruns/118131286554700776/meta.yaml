@@ -1,0 +1,6 @@
+artifact_location: mlflow-artifacts:/118131286554700776
+creation_time: 1745290661931
+experiment_id: '118131286554700776'
+last_update_time: 1745290661931
+lifecycle_stage: active
+name: Attrition Optuna Optimization (hpo.py logic)
