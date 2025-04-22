@@ -1,0 +1,6 @@
+artifact_location: mlflow-artifacts:/663065666979404977
+creation_time: 1745338402849
+experiment_id: '663065666979404977'
+last_update_time: 1745338402849
+lifecycle_stage: active
+name: Attrition Optuna Optimization (DB Source)

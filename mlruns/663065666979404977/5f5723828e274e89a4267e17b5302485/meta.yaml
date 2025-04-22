@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/663065666979404977/5f5723828e274e89a4267e17b5302485/artifacts
+end_time: 1745338847987
+entry_point_name: ''
+experiment_id: '663065666979404977'
+lifecycle_stage: active
+run_id: 5f5723828e274e89a4267e17b5302485
+run_name: Optuna_gradient_boosting_Study
+run_uuid: 5f5723828e274e89a4267e17b5302485
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745338582034
+status: 3
+tags: []
+user_id: richard
