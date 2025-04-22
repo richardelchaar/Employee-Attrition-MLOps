@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/663065666979404977/5beec259a63c4941b215fe3e8ae1374f/artifacts
+end_time: 1745339963485
+entry_point_name: ''
+experiment_id: '663065666979404977'
+lifecycle_stage: active
+run_id: 5beec259a63c4941b215fe3e8ae1374f
+run_name: Optuna_mlp_Study
+run_uuid: 5beec259a63c4941b215fe3e8ae1374f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745338847997
+status: 3
+tags: []
+user_id: richard

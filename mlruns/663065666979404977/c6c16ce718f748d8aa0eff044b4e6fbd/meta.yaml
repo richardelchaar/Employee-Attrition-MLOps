@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/663065666979404977/c6c16ce718f748d8aa0eff044b4e6fbd/artifacts
+end_time: 1745338772142
+entry_point_name: ''
+experiment_id: '663065666979404977'
+lifecycle_stage: active
+run_id: c6c16ce718f748d8aa0eff044b4e6fbd
+run_name: Trial_36_gradient_boosting
+run_uuid: c6c16ce718f748d8aa0eff044b4e6fbd
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745338769022
+status: 3
+tags: []
+user_id: richard

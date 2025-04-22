@@ -1,0 +1,13 @@
+{
+  "pipe_num_transform": "boxcox",
+  "pipe_num_scaler": "minmax",
+  "pipe_bt_encoder": "onehot",
+  "pipe_selector": "passthrough",
+  "pipe_smote": false,
+  "model_solver": "saga",
+  "model_penalty_saga": "l2",
+  "model_C": 1.707031977087693,
+  "model_max_iter": 716,
+  "model_class_weight": "balanced",
+  "model_type": "logistic_regression"
+}
