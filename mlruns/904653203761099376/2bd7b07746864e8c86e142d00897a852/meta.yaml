@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/2bd7b07746864e8c86e142d00897a852/artifacts
+end_time: 1745290720830
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 2bd7b07746864e8c86e142d00897a852
+run_name: redolent-swan-796
+run_uuid: 2bd7b07746864e8c86e142d00897a852
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290720798
+status: 3
+tags: []
+user_id: richard

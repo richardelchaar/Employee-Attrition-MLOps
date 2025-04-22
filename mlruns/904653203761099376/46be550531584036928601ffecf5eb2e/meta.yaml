@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/46be550531584036928601ffecf5eb2e/artifacts
+end_time: 1745290719020
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 46be550531584036928601ffecf5eb2e
+run_name: redolent-vole-21
+run_uuid: 46be550531584036928601ffecf5eb2e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290718988
+status: 3
+tags: []
+user_id: richard

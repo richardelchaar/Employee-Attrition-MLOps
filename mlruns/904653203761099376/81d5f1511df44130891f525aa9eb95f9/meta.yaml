@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/904653203761099376/81d5f1511df44130891f525aa9eb95f9/artifacts
+end_time: 1745290715068
+entry_point_name: ''
+experiment_id: '904653203761099376'
+lifecycle_stage: active
+run_id: 81d5f1511df44130891f525aa9eb95f9
+run_name: adaptable-ox-114
+run_uuid: 81d5f1511df44130891f525aa9eb95f9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745290715035
+status: 3
+tags: []
+user_id: richard

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/118131286554700776/616b7e08daa24af1ab0b76f56a649de0/artifacts
+end_time: 1745291644439
+entry_point_name: ''
+experiment_id: '118131286554700776'
+lifecycle_stage: active
+run_id: 616b7e08daa24af1ab0b76f56a649de0
+run_name: Optuna_MultiModel_Optimize_Train_Select
+run_uuid: 616b7e08daa24af1ab0b76f56a649de0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745291452125
+status: 3
+tags: []
+user_id: richard
