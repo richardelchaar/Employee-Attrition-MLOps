@@ -1,0 +1,14 @@
+aliases: []
+creation_timestamp: 1745343223953
+current_stage: Production
+description: ''
+last_updated_timestamp: 1745343228990
+name: AttritionProductionModel
+run_id: ccfd88ff5ac2429f9e4f9778a0153363
+run_link: ''
+source: mlflow-artifacts:/226317363796254688/ccfd88ff5ac2429f9e4f9778a0153363/artifacts/final_model_pipeline
+status: READY
+status_message: null
+storage_location: mlflow-artifacts:/226317363796254688/ccfd88ff5ac2429f9e4f9778a0153363/artifacts/final_model_pipeline
+user_id: null
+version: 7

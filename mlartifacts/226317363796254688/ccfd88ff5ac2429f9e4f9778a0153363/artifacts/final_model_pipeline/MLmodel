@@ -1,0 +1,56 @@
+artifact_path: final_model_pipeline
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.11.9
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.6.1
+is_signature_from_type_hint: false
+mlflow_version: 2.21.3
+model_size_bytes: 90072
+model_uuid: 0063f73ef7d944c183e69234a436e63e
+prompts: null
+run_id: ccfd88ff5ac2429f9e4f9778a0153363
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "long", "name": "EmployeeNumber", "required": true}, {"type":
+    "long", "name": "Age", "required": true}, {"type": "string", "name": "Gender",
+    "required": true}, {"type": "string", "name": "MaritalStatus", "required": true},
+    {"type": "string", "name": "Department", "required": true}, {"type": "string",
+    "name": "EducationField", "required": true}, {"type": "long", "name": "JobLevel",
+    "required": true}, {"type": "string", "name": "JobRole", "required": true}, {"type":
+    "string", "name": "BusinessTravel", "required": true}, {"type": "long", "name":
+    "DistanceFromHome", "required": true}, {"type": "long", "name": "Education", "required":
+    true}, {"type": "long", "name": "DailyRate", "required": true}, {"type": "long",
+    "name": "HourlyRate", "required": true}, {"type": "long", "name": "MonthlyIncome",
+    "required": true}, {"type": "long", "name": "MonthlyRate", "required": true},
+    {"type": "long", "name": "PercentSalaryHike", "required": true}, {"type": "long",
+    "name": "StockOptionLevel", "required": true}, {"type": "string", "name": "OverTime",
+    "required": true}, {"type": "long", "name": "NumCompaniesWorked", "required":
+    true}, {"type": "long", "name": "TotalWorkingYears", "required": true}, {"type":
+    "long", "name": "TrainingTimesLastYear", "required": true}, {"type": "long", "name":
+    "YearsAtCompany", "required": true}, {"type": "long", "name": "YearsInCurrentRole",
+    "required": true}, {"type": "long", "name": "YearsSinceLastPromotion", "required":
+    true}, {"type": "long", "name": "YearsWithCurrManager", "required": true}, {"type":
+    "long", "name": "EnvironmentSatisfaction", "required": true}, {"type": "long",
+    "name": "JobInvolvement", "required": true}, {"type": "long", "name": "JobSatisfaction",
+    "required": true}, {"type": "long", "name": "PerformanceRating", "required": true},
+    {"type": "long", "name": "RelationshipSatisfaction", "required": true}, {"type":
+    "long", "name": "WorkLifeBalance", "required": true}, {"type": "string", "name":
+    "AgeGroup", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2025-04-22 17:33:42.096400'
