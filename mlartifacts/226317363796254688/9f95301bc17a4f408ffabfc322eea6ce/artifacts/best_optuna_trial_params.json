@@ -1,0 +1,15 @@
+{
+  "pipe_num_transform": "boxcox",
+  "pipe_num_scaler": "minmax",
+  "pipe_bt_encoder": "ordinal",
+  "pipe_selector": "lasso",
+  "pipe_smote": true,
+  "selector_lasso_C": 0.3489139557991464,
+  "model_solver": "saga",
+  "model_penalty_saga": "elasticnet",
+  "model_C": 0.17449648230880263,
+  "model_max_iter": 478,
+  "model_class_weight": "balanced",
+  "model_l1_ratio": 0.0451560282081197,
+  "model_type": "logistic_regression"
+}

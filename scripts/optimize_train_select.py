@@ -30,6 +30,16 @@ import shap
 from fairlearn.metrics import MetricFrame, count, selection_rate
 from fairlearn.metrics import demographic_parity_difference, equalized_odds_difference
 
+# --- Data Profiling ---
+from sklearn.metrics import RocCurveDisplay
+try:
+    # Import from the NEW library name
+    from ydata_profiling import ProfileReport
+except ImportError:
+    # Update warning message
+    logger.warning("ydata-profiling not found. Skipping data profile generation.")
+    ProfileReport = None # Define as None if not available
+
 # --- Add src directory to Python path ---
 SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
 if SRC_PATH not in sys.path:
@@ -586,6 +596,20 @@ def optimize_select_and_train(models_to_opt: list):
                     try:
                         y_test_proba = final_pipeline.predict_proba(X_test)[:, 1]
                         test_metrics["test_auc"] = roc_auc_score(y_test, y_test_proba)
+                        # --- Log ROC Curve Plot ---
+                        try:
+                            logger.info("Generating and logging ROC Curve plot...")
+                            roc_plot_path = os.path.join(REPORTS_PATH, f"roc_curve_{final_run_id}.png")
+                            fig, ax = plt.subplots()
+                            RocCurveDisplay.from_predictions(y_test, y_test_proba, ax=ax, name=f"{best_model_type_name} Test Set")
+                            plt.title("ROC Curve")
+                            plt.grid(True)
+                            plt.savefig(roc_plot_path)
+                            plt.close(fig) # Close the figure to free memory
+                            mlflow.log_artifact(roc_plot_path, artifact_path="evaluation_reports")
+                            logger.info("ROC Curve plot saved and logged.")
+                        except Exception as roc_err:
+                            logger.error(f"Could not generate or log ROC Curve plot: {roc_err}", exc_info=True)
                     except Exception as auc_err:
                         logger.warning(f"Could not calculate AUC score: {auc_err}")
                         test_metrics["test_auc"] = -1.0
@@ -607,6 +631,47 @@ def optimize_select_and_train(models_to_opt: list):
                     logger.info(f"Confusion matrix saved and logged.")
                 except Exception as cm_err:
                     logger.error(f"Could not log confusion matrix: {cm_err}", exc_info=True)
+                
+                # --- Log Data Profile Baseline (X_train) ---
+                if ProfileReport: # Check if ydata-profiling was imported successfully
+                    try:
+                        logger.info("Generating Data Profile for X_train...")
+                        profile_path = os.path.join(REPORTS_PATH, f"training_data_profile_{final_run_id}.html")
+                        # Use minimal=True for faster report generation if needed
+                        profile = ProfileReport(X_train, title="Training Data Profile", minimal=True)
+                        profile.to_file(profile_path)
+                        mlflow.log_artifact(profile_path, artifact_path="data_baselines")
+                        logger.info("Training data profile saved and logged.")
+                    except Exception as profile_err:
+                        logger.error(f"Could not generate or log data profile: {profile_err}", exc_info=True)
+                else:
+                    # Update warning message
+                    logger.warning("Skipping data profile generation as ydata-profiling is not installed or import failed.")
+                
+                # --- Log Prediction Baseline (Test Set Probabilities) ---
+                if 'y_test_proba' in locals(): # Check if probabilities were calculated
+                    try:
+                        logger.info("Logging prediction baseline statistics...")
+                        pred_stats = pd.Series(y_test_proba).describe().to_dict()
+                        mlflow.log_metrics({f"test_pred_proba_{k}": v for k,v in pred_stats.items()})
+
+                        # Optional: Log histogram artifact
+                        hist_path = os.path.join(REPORTS_PATH, f"prediction_histogram_{final_run_id}.png")
+                        fig, ax = plt.subplots()
+                        pd.Series(y_test_proba).hist(ax=ax, bins=50)
+                        ax.set_title("Test Set Prediction Probability Distribution")
+                        ax.set_xlabel("Predicted Probability (Class 1)")
+                        ax.set_ylabel("Frequency")
+                        plt.grid(True)
+                        plt.savefig(hist_path)
+                        plt.close(fig)
+                        mlflow.log_artifact(hist_path, artifact_path="data_baselines")
+                        logger.info("Prediction baseline stats and histogram logged.")
+
+                    except Exception as pred_base_err:
+                        logger.error(f"Could not log prediction baseline: {pred_base_err}", exc_info=True)
+                else:
+                    logger.warning("Skipping prediction baseline logging as y_test_proba is not available.")
 
 
                 # ===========================================================
@@ -893,25 +958,25 @@ def optimize_select_and_train(models_to_opt: list):
                      logger.info(f"Model logged (without signature) and registered as '{PRODUCTION_MODEL_NAME}'.")
 
 
-                # --- Transition Model to Production Stage ---
+                # --- Transition Model to Staging Stage ---
                 client = mlflow.tracking.MlflowClient()
                 try:
                     time.sleep(5) # Allow time for registration
                     latest_versions = client.get_latest_versions(PRODUCTION_MODEL_NAME, stages=["None"])
                     if latest_versions:
                         model_version = latest_versions[0].version
-                        logger.info(f"Transitioning model version {model_version} of '{PRODUCTION_MODEL_NAME}' to Production stage.")
+                        logger.info(f"Transitioning model version {model_version} of '{PRODUCTION_MODEL_NAME}' to Staging stage.")
                         client.transition_model_version_stage(
                             name=PRODUCTION_MODEL_NAME, version=model_version,
-                            stage="Production", archive_existing_versions=True
+                            stage="Staging", archive_existing_versions=False # Typically don't archive when moving to Staging
                         )
-                        mlflow.set_tag("model_registered_stage", "Production")
-                        logger.info(f"Model version {model_version} successfully transitioned to Production.")
+                        mlflow.set_tag("model_registered_stage", "Staging")
+                        logger.info(f"Model version {model_version} successfully transitioned to Staging.")
                     else:
                         logger.error("Could not find newly registered model version in 'None' stage.")
                         mlflow.set_tag("model_registration_status", "Transition_Failed_NotFound")
                 except Exception as transition_err:
-                    logger.error(f"Failed to transition model to Production stage: {transition_err}", exc_info=True)
+                    logger.error(f"Failed to transition model to Staging stage: {transition_err}", exc_info=True)
                     mlflow.set_tag("model_registration_status", f"Transition_Failed_{type(transition_err).__name__}")
 
 
