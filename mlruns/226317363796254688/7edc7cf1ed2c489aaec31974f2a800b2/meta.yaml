@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/226317363796254688/7edc7cf1ed2c489aaec31974f2a800b2/artifacts
+end_time: 1745419168718
+entry_point_name: ''
+experiment_id: '226317363796254688'
+lifecycle_stage: active
+run_id: 7edc7cf1ed2c489aaec31974f2a800b2
+run_name: Trial_1_logistic_regression
+run_uuid: 7edc7cf1ed2c489aaec31974f2a800b2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745419167913
+status: 3
+tags: []
+user_id: chenshuxi
