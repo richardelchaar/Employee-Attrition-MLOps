@@ -176,7 +176,7 @@ def seed_database(csv_path: str, db_url: str, table_name: str, snapshot_date_str
 
         # --- Database Connection & Transaction ---
         logger.info(f"Connecting to database...")
-        engine = create_engine(db_url, fast_executemany=True)
+        engine = create_engine(db_url)
 
         # Use a transaction to ensure atomicity (delete and insert together)
         with engine.connect() as connection:

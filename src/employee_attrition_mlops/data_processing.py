@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from scipy.stats import boxcox, skew
 import logging
-from sqlalchemy import create_engine, text # Added for DB access
+from sqlalchemy import create_engine, text # Removed URL
 from sqlalchemy.exc import SQLAlchemyError # Added for DB error handling
 import os # Added
 from dotenv import load_dotenv # Added
@@ -13,7 +13,8 @@ from dotenv import load_dotenv # Added
 # This assumes config.py is in the same directory or correctly in the python path
 try:
     from .config import (TARGET_COLUMN, BUSINESS_TRAVEL_MAPPING,
-                         COLS_TO_DROP_POST_LOAD, DB_HISTORY_TABLE, DATABASE_URL,
+                         COLS_TO_DROP_POST_LOAD, DB_HISTORY_TABLE,
+                         DATABASE_URL_PYODBC,
                          SNAPSHOT_DATE_COL, SKEWNESS_THRESHOLD) # Added DB related vars & SKEWNESS_THRESHOLD
 except ImportError as e:
      # Fallback or error handling if config import fails
@@ -23,7 +24,7 @@ except ImportError as e:
      BUSINESS_TRAVEL_MAPPING = {'Non-Travel': 0, 'Travel_Rarely': 1, 'Travel_Frequently': 2}
      COLS_TO_DROP_POST_LOAD = ['EmployeeCount', 'StandardHours', 'Over18']
      DB_HISTORY_TABLE = "employees_history"
-     DATABASE_URL = os.getenv("DATABASE_URL") # Try loading directly as fallback
+     DATABASE_URL_PYODBC = os.getenv("DATABASE_URL_PYODBC") # Try loading directly as fallback
      SNAPSHOT_DATE_COL = "SnapshotDate"
      SKEWNESS_THRESHOLD = 0.75
 
@@ -434,109 +435,92 @@ def load_and_clean_data_from_csv(path: str) -> pd.DataFrame:
 
 
 # --- NEW: Data Loading from Database ---
-def load_and_clean_data_from_db(db_url: str = DATABASE_URL, table_name: str = DB_HISTORY_TABLE) -> pd.DataFrame:
+def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFrame:
     """
-    Loads data from the specified database table, excluding SnapshotDate,
-    and performs minimal initial cleaning (dropping specified columns, duplicates).
-    Relies on pipeline imputers for missing value handling.
+    Loads data from the specified database table using SQLAlchemy with pyodbc.
+    Handles potential connection errors, and performs initial cleaning.
+    Uses DATABASE_URL_PYODBC from config.
 
     Args:
-        db_url (str): SQLAlchemy connection string. Defaults to DATABASE_URL from config.
-        table_name (str): Name of the table to query. Defaults to DB_HISTORY_TABLE from config.
+        table_name: The name of the table to load data from.
 
     Returns:
-        pd.DataFrame: The loaded and minimally cleaned data.
-
-    Raises:
-        ValueError: If db_url is not provided or found.
-        SQLAlchemyError: If a database connection or query error occurs.
-        Exception: For other unexpected errors during loading.
+        A pandas DataFrame containing the loaded and initially cleaned data,
+        or None if loading fails.
     """
-    if not db_url:
-        logger.error("FATAL: Database URL is not configured. Set DATABASE_URL environment variable or pass explicitly.")
-        raise ValueError("Database URL required for loading data.")
+    if not DATABASE_URL_PYODBC:
+        logger.error("DATABASE_URL_PYODBC is not configured. Cannot load data from DB.")
+        return None
 
-    # Define columns to select based on the schema (excluding SnapshotDate)
-    # Ensure these names match exactly with the database table column names
-    columns_to_select = [
-        "EmployeeNumber", "Age", "Attrition", "Gender", "MaritalStatus", "Over18",
-        "Department", "EducationField", "JobLevel", "JobRole", "BusinessTravel",
-        "DistanceFromHome", "Education", "DailyRate", "HourlyRate", "MonthlyIncome",
-        "MonthlyRate", "PercentSalaryHike", "StockOptionLevel", "OverTime",
-        "StandardHours", "EmployeeCount", "NumCompaniesWorked", "TotalWorkingYears",
-        "TrainingTimesLastYear", "YearsAtCompany", "YearsInCurrentRole",
-        "YearsSinceLastPromotion", "YearsWithCurrManager", "EnvironmentSatisfaction",
-        "JobInvolvement", "JobSatisfaction", "PerformanceRating",
-        "RelationshipSatisfaction", "WorkLifeBalance"
-    ]
-    select_query = f"SELECT {', '.join(columns_to_select)} FROM {table_name}"
-    # Optional: Add WHERE clause if you only want the latest data, e.g., based on max SnapshotDate
-    # select_query += f" WHERE {SNAPSHOT_DATE_COL} = (SELECT MAX({SNAPSHOT_DATE_COL}) FROM {table_name})"
-    logger.info(f"Preparing to execute query on table '{table_name}'")
-    # logger.debug(f"Using query: {select_query}") # Uncomment for debugging query
+    connection_string = DATABASE_URL_PYODBC # Use the specific URL for pyodbc
+    logger.info(f"Attempting DB connection using pyodbc driver (URL from config).")
 
     engine = None
+    df = None
     try:
-        logger.info(f"Connecting to database using provided URL...")
-        # Consider adding connection arguments if needed (e.g., pool_pre_ping=True)
-        engine = create_engine(db_url)
+        # Establish database connection using the pyodbc URL
+        engine = create_engine(connection_string)
+        logger.info(f"Successfully created SQLAlchemy engine using pyodbc.")
 
+        # Check if table exists
         with engine.connect() as connection:
-            logger.info(f"Executing query to fetch data...")
-            start_time = pd.Timestamp.now()
-            df = pd.read_sql(sql=text(select_query), con=connection)
-            end_time = pd.Timestamp.now()
-            logger.info(f"Loaded data from database. Shape: {df.shape}. Time taken: {end_time - start_time}")
-
-        # --- Initial Cleaning (Post DB Load) ---
-        # 1. Drop columns specified in config (e.g., constant columns)
-        # Use COLS_TO_DROP_POST_LOAD from config.py
-        if COLS_TO_DROP_POST_LOAD: # Check if the list is not empty
-            cols_to_drop_present = [col for col in COLS_TO_DROP_POST_LOAD if col in df.columns]
-            if cols_to_drop_present:
-                df = df.drop(columns=cols_to_drop_present)
-                logger.info(f"Dropped columns post-load as per config: {cols_to_drop_present}")
+            logger.info(f"Checking if table '{table_name}' exists...")
+            check_query = text(f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = :table_name")
+            result = connection.execute(check_query, {"table_name": table_name}).fetchone()
+            if result:
+                logger.info(f"Table '{table_name}' found. Loading data...")
+                df = pd.read_sql_table(table_name, con=connection)
+                logger.info(f"Successfully loaded {df.shape[0]} rows and {df.shape[1]} columns from '{table_name}'.")
             else:
-                 logger.info("No columns specified in COLS_TO_DROP_POST_LOAD were found in the loaded data.")
-        else:
-             logger.info("COLS_TO_DROP_POST_LOAD is empty in config, no columns dropped based on this.")
+                logger.error(f"Table '{table_name}' does not exist in the database.")
+                return None
 
+        # --- Initial Data Cleaning ---
+        if df is not None:
+            logger.info("Starting initial data cleaning...")
+            original_cols = df.columns.tolist()
+            df.columns = [col.replace(' ', '').replace('(', '').replace(')', '').replace('-', '') for col in df.columns]
+            renamed_cols = df.columns.tolist()
+            if original_cols != renamed_cols:
+                 logger.info(f"Renamed columns: {dict(zip(original_cols, renamed_cols))}")
+            cols_to_drop = [col for col in COLS_TO_DROP_POST_LOAD if col in df.columns]
+            if cols_to_drop:
+                df = df.drop(columns=cols_to_drop)
+                logger.info(f"Dropped columns: {cols_to_drop}")
+            if TARGET_COLUMN in df.columns and df[TARGET_COLUMN].dtype == 'object':
+                unique_vals = df[TARGET_COLUMN].unique()
+                if set(unique_vals) <= {'Yes', 'No', None, np.nan}:
+                    logger.info(f"Converting target column '{TARGET_COLUMN}' ('Yes'/'No') to numeric (1/0).")
+                    df[TARGET_COLUMN] = df[TARGET_COLUMN].map({'Yes': 1, 'No': 0}).astype(float)
+                else:
+                    logger.warning(f"Target column '{TARGET_COLUMN}' is object type but contains unexpected values: {unique_vals}. Skipping automatic conversion.")
+            if SNAPSHOT_DATE_COL in df.columns:
+                 try:
+                     df[SNAPSHOT_DATE_COL] = pd.to_datetime(df[SNAPSHOT_DATE_COL])
+                     logger.info(f"Converted '{SNAPSHOT_DATE_COL}' column to datetime objects.")
+                 except Exception as e:
+                     logger.error(f"Error converting '{SNAPSHOT_DATE_COL}' to datetime: {e}. Check column format.")
+            logger.info("Initial data cleaning finished.")
 
-        # 2. Drop duplicate rows (if any) - based on all columns
-        initial_rows = len(df)
-        df = df.drop_duplicates()
-        rows_dropped = initial_rows - len(df)
-        if rows_dropped > 0:
-            logger.info(f"Dropped {rows_dropped} duplicate rows found in DB data.")
-
-        # 3. Handle Missing Values (Minimal - Rely on Pipeline Imputers)
-        # Log a warning if NaNs are present, as the pipeline should handle them.
-        nan_count = df.isnull().sum().sum()
-        if nan_count > 0:
-            logger.warning(f"Missing values detected after loading from DB ({nan_count} total NaNs). Pipeline imputers should handle these.")
-            # Log counts per column for debugging if needed
-            # logger.debug(f"NaN counts per column:\n{df.isnull().sum()[df.isnull().sum() > 0]}")
-
-        logger.info(f"DB Data loaded and minimally cleaned. Final shape for pipeline: {df.shape}")
-        return df
-
-    except SQLAlchemyError as db_err:
-        logger.error(f"Database error during data loading from table '{table_name}': {db_err}", exc_info=True)
-        # Provide hints based on common errors
-        if "Invalid object name" in str(db_err):
-             logger.error(f"Hint: Table '{table_name}' likely does not exist or is not accessible with the provided credentials/permissions.")
-        elif "Login failed" in str(db_err):
-             logger.error("Hint: Database login failed. Check username/password/credentials in DATABASE_URL.")
-        elif "Cannot open database" in str(db_err):
-             logger.error("Hint: Database name in DATABASE_URL might be incorrect or the database is unavailable.")
-        raise  # Re-raise the exception after logging hints
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during connection or query (pyodbc): {e}", exc_info=True)
+        df = None
+    except ImportError as e:
+        logger.error(f"ImportError: pyodbc driver might not be installed: {e}")
+        logger.error("Please ensure pyodbc is installed ('poetry install')")
+        df = None
     except Exception as e:
-        logger.error(f"An unexpected error occurred during DB data loading: {e}", exc_info=True)
-        raise # Re-raise the exception
+        logger.error(f"An unexpected error occurred during data loading/cleaning from DB (pyodbc): {e}", exc_info=True)
+        df = None
     finally:
         if engine:
             engine.dispose()
-            logger.info("Database connection pool disposed after loading.")
+            logger.info("Database engine (pyodbc) disposed.")
+
+    if df is None:
+        logger.error("Failed to load data from the database using pyodbc.")
+
+    return df
 
 
 # --- Utilities (Keep As Is - Ensure these are implemented correctly) ---

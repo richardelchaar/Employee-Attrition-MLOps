@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/226317363796254688/8a147377edb44fd380de2f7297014166/artifacts
+end_time: 1745458140885
+entry_point_name: ''
+experiment_id: '226317363796254688'
+lifecycle_stage: active
+run_id: 8a147377edb44fd380de2f7297014166
+run_name: DB_MultiModel_Optimize_Train_Evaluate
+run_uuid: 8a147377edb44fd380de2f7297014166
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745458140785
+status: 4
+tags: []
+user_id: richard

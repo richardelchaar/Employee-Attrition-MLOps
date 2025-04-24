@@ -1,77 +1,69 @@
-
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-
-[project]
-name = "module1"
-version = "0.0.1"
-description = "A short description of the project."
-authors = [
-  { name = "Your name (or your organization/company/team)" },
-]
-license = { file = "LICENSE" }
+# Consolidated project metadata under [tool.poetry]
+[tool.poetry]
+name = "employee-attrition-mlops"
+version = "0.1.0"
+description = "Employee Attrition MLOps Project"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
 readme = "README.md"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License"
+   "Programming Language :: Python :: 3",
+   "License :: OSI Approved :: MIT License",
+   "Operating System :: OS Independent",
 ]
+# --- This line tells Poetry where your package code is ---
+packages = [{include = "employee_attrition_mlops", from = "src"}]
 
-
-
-
-requires-python = "~=3.11.0"
-
+# --- Dependencies Section (all original dependencies retained) ---
 [tool.poetry.dependencies]
-mkdocs = "*"
-optuna ="*"
-sqlalchemy ="*"
-pyodbc = "*"
-pip = "*"
-imbalanced-learn ="*"
-pytest = "^7.2.0"
-python-dotenv = "^1.0.0"
-ruff = "*"
-ydata-profiling = "^4.8"
+python = "~=3.11.0"
 pandas = "^2.0.0"
 numpy = "^1.24.0"
-scikit-learn = "^1.2.0"
+scikit-learn = "1.6.1"
+optuna = "*"
+sqlalchemy = "*"
+# Add both drivers back as regular dependencies
+pyodbc = "*"
+pymssql = "^2.2.10"
+mlflow = "^2.1.0"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.29.0"}
+python-dotenv = "^1.0.0"
+imbalanced-learn = "*"
+shap = "^0.45.0"
+fairlearn = "*"
+evidently = "^0.4.0"
+ydata-profiling = "^4.8"
 matplotlib = "^3.7.0"
 seaborn = "^0.12.0"
 jupyter = "^1.0.0"
-ipykernel = "^6.20.0"
-scipy = "^1.10.0"
-statsmodels = "^0.14.0"
-# Course 1 Specific
-dowhy = "*"
-# MLOps
-mlflow = "^2.1.0" # Use a specific recent version
-fastapi = "^0.109.0"
-# Allows 0.29.x but not 1.0.0
-uvicorn = {extras = ["standard"], version = "^0.29.0"} 
-requests = "^2.28.0"
-# XAI & Fairness
-shap = "^0.45.0"
-fairlearn = "*" # 
-# AutoML
-tpot = "^0.11.7" # Check for latest TPOT version
-# Drift Detection
-evidently = "^0.4.0" # Allows 0.4.x but not 1.0.0
-# Other utilities
-joblib = "^1.2.0"
-# ydata-profiling requires Pydantic v2
-pydantic = {extras = ["email"], version = "^2.0.0"} # Allows 2.x.x 
-
-[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.0"
 pytest = "^7.2.0"
-black = "^23.1.0"
-flake8 = "^6.0.0"
-ipywidgets = "^8.0.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+flake8 = "^6.1.0"
+mypy = "^1.5.0"
+pre-commit = "^3.3.0"
+pip = "*"
+requests = "^2.28.0"
+joblib = "^1.2.0"
+pydantic = {extras = ["email"], version = "^2.0.0"}
+tpot = "^0.11.7"
+dowhy = "*"
+ruff = "*"
 
-
-
-
+# --- Dependency Groups (kept as original) ---
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+flake8 = "^6.1.0"
+mypy = "^1.5.0"
+pre-commit = "^3.3.0"
 
 [tool.ruff]
 line-length = 99
@@ -84,4 +76,38 @@ extend-select = ["I"]  # Add import sorting
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 force-sort-within-sections = true
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test*"
+addopts = "-ra -q"
 

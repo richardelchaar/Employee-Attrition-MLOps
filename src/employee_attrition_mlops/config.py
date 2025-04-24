@@ -30,17 +30,24 @@ DRIFT_REPORT_FILENAME = "drift_report.html" # Example drift report name (Evident
 TEST_METRICS_FILENAME = "test_metrics_summary.json" # For saving test metrics
 
 # --- Database Configuration ---
-# Load database connection string from environment variable (MUST be set in .env or environment)
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    logger.error("FATAL: DATABASE_URL environment variable is not set. Please configure it in your .env file or environment.")
-    # Depending on the script using this config, you might want to raise an error or sys.exit here.
-    # raise ValueError("DATABASE_URL environment variable is not set.")
+# Load database connection strings from environment variables
+DATABASE_URL_PYODBC = os.getenv("DATABASE_URL_PYODBC")
+DATABASE_URL_PYMSSQL = os.getenv("DATABASE_URL_PYMSSQL")
+
+if not DATABASE_URL_PYODBC:
+    logger.warning("DATABASE_URL_PYODBC environment variable is not set. Training/preprocessing requiring DB access might fail.")
+if not DATABASE_URL_PYMSSQL:
+    logger.warning("DATABASE_URL_PYMSSQL environment variable is not set. API requiring DB access might fail.")
+
+# Keep original DATABASE_URL for potential backward compatibility or other uses? Or remove?
+# Let's comment it out for now to avoid confusion.
+# DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Define table names used in the project
 DB_HISTORY_TABLE = "employees_history" # Table containing the historical employee data
 # Add other table names if used (e.g., for prediction logs, monitoring logs)
-# DB_PREDICTION_LOG_TABLE = "prediction_logs"
+DB_PREDICTION_LOG_TABLE = os.getenv("DB_PREDICTION_LOG_TABLE", "prediction_logs") # Table to store individual prediction logs via API
+DB_BATCH_PREDICTION_TABLE = os.getenv("DB_BATCH_PREDICTION_TABLE", "batch_prediction_results") # Table for batch predictions
 # DB_MONITORING_LOG_TABLE = "monitoring_logs"
 
 # --- Data Columns ---
