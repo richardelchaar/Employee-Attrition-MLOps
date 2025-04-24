@@ -6,8 +6,8 @@ import os
 from unittest.mock import patch, MagicMock, mock_open, call
 from pathlib import Path
 
-# Assuming your utils module is importable like this
-# Adjust the import path if your project structure is different
+# Assuming utils module is importable 
+# Adjust the import path if project structure is different
 from src.employee_attrition_mlops import utils
 
 # --- Fixtures ---
