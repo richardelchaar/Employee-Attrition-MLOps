@@ -56,7 +56,8 @@ try:
         HPO_N_TRIALS, HPO_CV_FOLDS, PRIMARY_METRIC,
         MODELS_TO_OPTIMIZE,
         REPORTS_PATH, SKEWNESS_THRESHOLD,
-        DATABASE_URL, DB_HISTORY_TABLE,
+        DATABASE_URL_PYODBC,
+        DB_HISTORY_TABLE,
         SENSITIVE_FEATURES, # Import sensitive features list
         FEATURE_IMPORTANCE_PLOT_FILENAME, # Import filenames for artifacts
         # Add other necessary filenames from config if needed
@@ -369,13 +370,13 @@ def optimize_select_and_train(models_to_opt: list):
         X_train, X_test, y_train, y_test = None, None, None, None # Initialize
         try:
             logger.info("Loading data from database...")
-            if not DATABASE_URL:
-                 logger.error("FATAL: DATABASE_URL environment variable not set.")
+            if not DATABASE_URL_PYODBC:
+                 logger.error("FATAL: DATABASE_URL_PYODBC environment variable not set.")
                  mlflow.set_tag("status", "FAILED_DB_CONFIG")
                  mlflow.end_run("FAILED")
                  sys.exit(1)
 
-            df_raw = load_and_clean_data_from_db(db_url=DATABASE_URL, table_name=DB_HISTORY_TABLE)
+            df_raw = load_and_clean_data_from_db(table_name=DB_HISTORY_TABLE)
 
             # --- Create AgeGroup Feature ---
             # This needs to be done *before* splitting if AgeGroup is a sensitive feature

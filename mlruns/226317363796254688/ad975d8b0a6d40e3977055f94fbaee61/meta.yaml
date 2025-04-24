@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/226317363796254688/ad975d8b0a6d40e3977055f94fbaee61/artifacts
+end_time: 1745460418668
+entry_point_name: ''
+experiment_id: '226317363796254688'
+lifecycle_stage: active
+run_id: ad975d8b0a6d40e3977055f94fbaee61
+run_name: Optuna_logistic_regression_Study
+run_uuid: ad975d8b0a6d40e3977055f94fbaee61
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745460313093
+status: 3
+tags: []
+user_id: richard

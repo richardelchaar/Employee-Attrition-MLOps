@@ -1,0 +1,55 @@
+# Remove obsolete version tag
+# version: '3.8'
+
+services:
+  mlflow-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5001:5001"
+    volumes:
+      # Restore original volume mapping
+      - ./mlruns:/mlflow_runs
+      - ./mlartifacts:/mlflow_artifacts
+    networks:
+      - mlflow_network
+    healthcheck:
+      # Corrected path for wget args
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5001"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      mlflow-server:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL_PYMSSQL}
+      - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL}
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5001
+      # Remove MLFLOW_ARTIFACT_URI, should be handled by tracking server
+      # - MLFLOW_ARTIFACT_URI=http://mlflow-server:5001
+      - DB_PREDICTION_LOG_TABLE=${DB_PREDICTION_LOG_TABLE:-prediction_logs}
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app:/app/src
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+    command: ["uvicorn", "employee_attrition_mlops.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    networks:
+      - mlflow_network
+
+networks:
+  mlflow_network:
+    driver: bridge
+
+# Remove unused volume definition
+# volumes:
+#  mlflow_data: 

@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+# Install MLflow and dependencies
+RUN apt-get update && apt-get install -y wget && \
+    pip install --no-cache-dir mlflow && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create directory for MLflow data
+RUN mkdir -p /mlflow
+
+# Expose the port MLflow will run on
+EXPOSE 5001
+
+# Command to run the MLflow server (Corrected JSON array format)
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5001", "--backend-store-uri", "/mlflow_runs", "--default-artifact-root", "/mlflow_artifacts", "--artifacts-destination", "/mlflow_artifacts", "--serve-artifacts"] 
