@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Assuming utils module is importable 
 # Adjust the import path if project structure is different
-from src.employee_attrition_mlops import utils
+from employee_attrition_mlops import utils
 
 # --- Fixtures ---
 
