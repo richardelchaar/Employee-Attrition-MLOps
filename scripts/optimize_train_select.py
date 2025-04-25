@@ -447,8 +447,50 @@ def optimize_select_and_train(models_to_opt: list):
              mlflow.end_run("FAILED")
              sys.exit(1)
 
+        # Generate baseline data profile
+        logger.info("Generating baseline data profile...")
+        try:
+            # Create preprocessing pipeline with default settings
+            preprocessor = create_preprocessing_pipeline(
+                numerical_cols=[col for col in X_train.columns if pd.api.types.is_numeric_dtype(X_train[col])],
+                categorical_cols=[col for col in X_train.columns if pd.api.types.is_categorical_dtype(X_train[col])],
+                ordinal_cols=[],  # Add your ordinal columns if any
+                business_travel_col=[],  # Add if you have business travel columns
+                skewed_cols=find_skewed_columns(X_train, threshold=SKEWNESS_THRESHOLD)
+            )
+            
+            # Fit and transform the training data
+            X_train_processed = preprocessor.fit_transform(X_train)
+            if isinstance(X_train_processed, np.ndarray):
+                X_train_processed_df = pd.DataFrame(X_train_processed, columns=preprocessor.get_feature_names_out())
+            else:
+                X_train_processed_df = X_train_processed
+
+            # Generate and save baseline profile
+            profile = generate_evidently_profile(X_train_processed_df)
+            os.makedirs(REPORTS_PATH, exist_ok=True)
+            profile_path = os.path.join(REPORTS_PATH, "baseline_profile.json")
+            profile.save_html(profile_path.replace('.json', '.html'))
+            profile_json = profile.json()
+            save_json(profile_json, profile_path)
+
+            # Log artifacts to MLflow
+            mlflow.log_artifact(profile_path, artifact_path="drift_reference")
+            mlflow.log_artifact(profile_path.replace('.json', '.html'), artifact_path="drift_reference")
+
+            # Save reference data sample
+            ref_data_path = os.path.join(REPORTS_PATH, "reference_train_data.parquet")
+            X_train_processed_df.sample(min(1000, len(X_train_processed_df))).to_parquet(
+                ref_data_path, index=False
+            )
+            mlflow.log_artifact(ref_data_path, artifact_path="drift_reference")
+            logger.info("Successfully generated and saved baseline data profile")
+
+        except Exception as profile_err:
+            logger.error(f"Failed to generate baseline data profile: {profile_err}", exc_info=True)
+            mlflow.set_tag("profile_generation_status", "FAILED")
+
         # --- Optuna HPO Loop ---
-        # (Existing HPO loop code remains the same)
         optuna_results = {}
         for model_type in models_to_opt:
             if model_type not in CLASSIFIER_MAP or model_type not in PARAM_FUNC_MAP:

@@ -109,6 +109,12 @@ MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
 # (e.g., "http://host.docker.internal:5000" from another container, or service name in docker-compose)
 DEFAULT_EXPERIMENT_NAME = "Employee Attrition Default (DB)" # Default experiment if none is set explicitly
 
+# --- Drift Detection Constants ---
+DRIFT_CONFIDENCE = float(os.getenv("DRIFT_CONFIDENCE", 0.95))  # Confidence level for drift detection
+DRIFT_STATTEST_THRESHOLD = float(os.getenv("DRIFT_STATTEST_THRESHOLD", 0.05))  # Statistical test threshold
+RETRAIN_TRIGGER_FEATURE_COUNT = int(os.getenv("RETRAIN_TRIGGER_FEATURE_COUNT", 3))  # Number of drifted features to trigger retraining
+RETRAIN_TRIGGER_DATASET_DRIFT_P_VALUE = float(os.getenv("RETRAIN_TRIGGER_DATASET_DRIFT_P_VALUE", 0.05))  # P-value threshold for dataset drift
+
 logger.info("Configuration loaded.")
 # Log key configurations (optional, avoid logging sensitive info like full DB URL)
 logger.debug(f"Project Root: {PROJECT_ROOT}")

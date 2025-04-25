@@ -10,21 +10,21 @@ PYTHON_INTERPRETER = python
 # COMMANDS                                                                      #
 #################################################################################
 
+## Install Python dependencies with pip
+.PHONY: requirements-pip
+requirements-pip:
+	pip install -e .
 
-## Install Python dependencies
+## Install Python dependencies with Poetry
 .PHONY: requirements
 requirements:
-	pip install -e .
-	
-
-
+	poetry install
 
 ## Delete all compiled Python files
 .PHONY: clean
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
-
 
 ## Lint using ruff (use `make format` to do formatting)
 .PHONY: lint
@@ -38,21 +38,35 @@ format:
 	ruff check --fix
 	ruff format
 
-
-
 ## Run tests
 .PHONY: test
 test:
 	python -m pytest tests
 
+## Start MLflow tracking server
+.PHONY: mlflow
+mlflow:
+	mlflow ui --port 5000
 
+## Run hyperparameter optimization for logistic regression
+.PHONY: hpo-logreg
+hpo-logreg:
+	python scripts/hpo.py --model-type logistic_regression
 
+## Run hyperparameter optimization for random forest
+.PHONY: hpo-rf
+hpo-rf:
+	python scripts/hpo.py --model-type random_forest
 
-#################################################################################
-# PROJECT RULES                                                                 #
-#################################################################################
+## Train final model with best parameters
+.PHONY: train
+train:
+	python scripts/train.py
 
-
+## Train and register production model
+.PHONY: train-prod
+train-prod:
+	python scripts/train.py --register-as AttritionProductionModel
 
 #################################################################################
 # Self Documenting Commands                                                     #

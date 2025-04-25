@@ -6,7 +6,9 @@ import logging
 import os
 import mlflow
 from mlflow.tracking import MlflowClient
-
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+import pandas as pd
 
 
 logger = logging.getLogger(__name__)
@@ -84,3 +86,15 @@ def download_mlflow_artifact(run_id: str, artifact_path: str, dst_path: str = No
             logger.error(f"Failed to download artifact '{artifact_path}' from run '{run_id}': {e}")
             return None
 
+def generate_evidently_profile(current_data: pd.DataFrame, reference_data: pd.DataFrame = None):
+    """Generates a comprehensive data profile using Evidently AI."""
+    if reference_data is None:
+        # Creating a profile without comparison data
+        profile = Report(metrics=[DataDriftPreset()])
+        profile.run(current_data=current_data)
+    else:
+        # Creating a profile comparing to reference data
+        profile = Report(metrics=[DataDriftPreset()])
+        profile.run(reference_data=reference_data, current_data=current_data)
+    
+    return profile
