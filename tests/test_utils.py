@@ -12,6 +12,13 @@ from src.employee_attrition_mlops import utils
 
 # --- Fixtures ---
 
+# This fixture provides a simple object class for testing purposes
+class SimpleObject:
+    def __init__(self, name):
+        self.name = name
+    def __eq__(self, other):
+        return isinstance(other, SimpleObject) and self.name == other.name
+
 @pytest.fixture
 def sample_dict_data():
     """Provides sample dictionary data for JSON tests."""
@@ -20,11 +27,6 @@ def sample_dict_data():
 @pytest.fixture
 def sample_object_data():
     """Provides a sample Python object for joblib tests."""
-    class SimpleObject:
-        def __init__(self, name):
-            self.name = name
-        def __eq__(self, other):
-            return isinstance(other, SimpleObject) and self.name == other.name
     return SimpleObject("test_object")
 
 # --- Tests for JSON functions ---
@@ -60,8 +62,9 @@ def test_save_json_exception(mock_logger, mock_makedirs, mock_open_file, sample_
     mock_open_file.assert_called_once_with(file_path, 'w')
     # Assert error was logged
     mock_logger.error.assert_called_once()
-    assert "Error saving JSON" in mock_logger.error.call_args[0][0]
-    assert "Disk full" in str(mock_logger.error.call_args[0][1])
+    error_msg = mock_logger.error.call_args[0][0]
+    assert "Error saving JSON" in error_msg
+    assert "Disk full" in error_msg
 
 def test_load_json_success(tmp_path, sample_dict_data):
     """Tests successful loading of data from a JSON file."""
@@ -120,8 +123,9 @@ def test_save_object_exception(mock_logger, mock_makedirs, mock_dump, sample_obj
     mock_makedirs.assert_called_once_with(os.path.dirname(file_path), exist_ok=True)
     mock_dump.assert_called_once_with(sample_object_data, file_path)
     mock_logger.error.assert_called_once()
-    assert "Error saving object" in mock_logger.error.call_args[0][0]
-    assert "Cannot write" in str(mock_logger.error.call_args[0][1])
+    error_msg = mock_logger.error.call_args[0][0]
+    assert "Error saving object" in error_msg
+    assert "Cannot write" in error_msg
 
 def test_load_object_success(tmp_path, sample_object_data):
     """Tests successful loading of a Python object using joblib."""
@@ -150,8 +154,9 @@ def test_load_object_exception(mock_logger, mock_load):
     mock_load.assert_called_once_with(file_path)
     assert loaded_obj is None
     mock_logger.error.assert_called_once()
-    assert "Error loading object" in mock_logger.error.call_args[0][0]
-    assert "Unexpected end of file" in str(mock_logger.error.call_args[0][1])
+    error_msg = mock_logger.error.call_args[0][0]
+    assert "Error loading object" in error_msg
+    assert "Unexpected end of file" in error_msg
 
 
 # --- Tests for MLflow functions ---
@@ -201,9 +206,9 @@ def test_get_production_model_run_id_exception(mock_logger, MockMlflowClient):
     assert run_id is None
     mock_client_instance.get_latest_versions.assert_called_once_with(model_name, stages=[stage])
     mock_logger.error.assert_called_once()
-    assert "Error fetching production model run_id" in mock_logger.error.call_args[0][0]
-    assert "MLflow connection error" in str(mock_logger.error.call_args[0][1])
-
+    error_msg = mock_logger.error.call_args[0][0]
+    assert "Error fetching production model run_id" in error_msg
+    assert "MLflow connection error" in error_msg
 
 @patch('src.employee_attrition_mlops.utils.MlflowClient')
 def test_download_mlflow_artifact_success(MockMlflowClient):
@@ -253,6 +258,6 @@ def test_download_mlflow_artifact_exception(mock_logger, MockMlflowClient):
     assert local_path is None
     mock_client_instance.download_artifacts.assert_called_once_with(run_id, artifact_path, None)
     mock_logger.error.assert_called_once()
-    assert "Failed to download artifact" in mock_logger.error.call_args[0][0]
-    assert "Artifact not found" in str(mock_logger.error.call_args[0][1])
-
+    error_msg = mock_logger.error.call_args[0][0]
+    assert "Failed to download artifact" in error_msg
+    assert "Artifact not found" in error_msg
