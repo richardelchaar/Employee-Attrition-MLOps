@@ -334,22 +334,69 @@ def test_custom_ordinal_encoder_unknown_values(edge_case_data, caplog):
 
 
 def test_custom_ordinal_encoder_nan_handling(edge_case_data, caplog):
-    """Test adjusted to match actual encoder behavior."""
+    """Test CustomOrdinalEncoder handles NaN values and unknown values."""
+    # Clear previous log captures
+    caplog.clear()
+    
+    # Setup encoder with test data
     encoder = CustomOrdinalEncoder(
-        mapping=BUSINESS_TRAVEL_MAPPING, 
+        mapping=BUSINESS_TRAVEL_MAPPING,
         cols=['BusinessTravel']
     )
     data = edge_case_data.copy()
-    transformed = encoder.fit_transform(data)
     
-    # Check all NaNs/unknowns mapped to -1
-    assert (transformed['BusinessTravel'] == -1).any()
+    # Action
+    encoder.fit(data)
+    transformed = encoder.transform(data)
+    transformed_col = transformed['BusinessTravel']
     
-    # Check logs (updated to match actual implementation)
-    assert any("Filling" in rec.message and "pre-existing NaNs" in rec.message 
-              for rec in caplog.records if rec.levelname == 'WARNING')
-    assert any("unknown value(s) found" in rec.message 
-              for rec in caplog.records if rec.levelname == 'WARNING')
+    # Debug: Print actual log messages
+    print("\nActual log messages:")
+    for record in caplog.records:
+        print(f"{record.levelname}: {record.message}")
+    
+    # Verification 1: Check all values were mapped (no NaNs remain)
+    assert not transformed_col.isna().any(), "NaNs remain after transformation"
+    
+    # Verification 2: Verify known values are mapped correctly
+    known_values = data['BusinessTravel'].isin(BUSINESS_TRAVEL_MAPPING.keys())
+    if known_values.any():
+        expected = data.loc[known_values, 'BusinessTravel'].map(BUSINESS_TRAVEL_MAPPING)
+        try:
+            pd.testing.assert_series_equal(
+                transformed_col[known_values],
+                expected,
+                check_names=False,
+                check_dtype=False
+            )
+        except AssertionError as e:
+            raise AssertionError(f"Known values not mapped correctly: {str(e)}")
+    
+    # Verification 3: Check NaN and unknown values are mapped to -1
+    original_nans = data['BusinessTravel'].isna()
+    unknown_values = ~data['BusinessTravel'].isin(BUSINESS_TRAVEL_MAPPING.keys()) & ~original_nans
+    
+    if original_nans.any():
+        assert (transformed_col[original_nans] == -1).all(), "NaNs not mapped to -1"
+    if unknown_values.any():
+        assert (transformed_col[unknown_values] == -1).all(), "Unknown values not mapped to -1"
+    
+    # Verification 4: Check log messages (more flexible matching)
+    if original_nans.any():
+        assert any(
+            ("NaN" in rec.message or "missing" in rec.message) and 
+            "BusinessTravel" in rec.message and
+            rec.levelname == "WARNING"
+            for rec in caplog.records
+        ), "Expected warning about NaNs not found in logs"
+    
+    if unknown_values.any():
+        assert any(
+            ("unknown" in rec.message or "unexpected" in rec.message) and 
+            "BusinessTravel" in rec.message and
+            rec.levelname == "WARNING"
+            for rec in caplog.records
+        ), "Expected warning about unknown values not found in logs"
 
 def test_custom_ordinal_encoder_empty_input(empty_data):
     """Test CustomOrdinalEncoder with empty DataFrame."""
