@@ -1,272 +1,266 @@
-# Employee Attrition Prediction System
+# Employee Attrition MLOps Project
 
-A machine learning system for predicting employee attrition using MLOps best practices.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Project Structure](#project-structure)
-- [Setup and Installation](#setup-and-installation)
-- [Data Processing](#data-processing)
-- [Model Training and Optimization](#model-training-and-optimization)
-- [API and Deployment](#api-and-deployment)
-- [Web Interface](#web-interface)
-- [Testing](#testing)
-- [Docker Support](#docker-support)
-- [Development Tools](#development-tools)
-
-## Overview
-
-This project implements an end-to-end machine learning pipeline for predicting employee attrition. It follows MLOps best practices, including:
-
-- Automated data processing and feature engineering
-- Comprehensive testing (unit, integration, and performance)
-- API deployment
-- Docker containerization for reproducibility
-- MLflow integration for experiment tracking
-- Batch prediction capabilities
-- Database integration and management
-- Interactive web interface for predictions
+A production-ready MLOps system for predicting employee attrition, incorporating robust data handling, automated training with integrated validation, deployment, monitoring, and clear governance.
 
 ## Project Structure
 
 ```
-employee-attrition-mlops/
-├── src/                   # Source code
-│   ├── app.py             # Streamlit web application
-│   └── employee_attrition_mlops/
-│       ├── data_processing.py  # Data processing and transformers
-│       ├── config.py           # Configuration settings
-│       ├── api.py             # API endpoints
-│       ├── pipelines.py       # ML pipelines
-│       ├── utils.py           # Utility functions
-│       └── __init__.py        # Package initialization
-├── tests/                 # Test suite
-│   ├── test_data_processing.py  # Data processing tests
-│   ├── test_batch_predict.py    # Batch prediction tests
-│   └── test_utils.py           # Utility function tests
-├── scripts/               # Utility scripts
-│   ├── batch_predict.py        # Batch prediction script
-│   ├── seed_database_from_csv.py # Database seeding utility
-│   ├── optimize_train_select.py  # Model optimization and training
-│   └── __init__.py             # Package initialization
-├── mlruns/               # MLflow experiment tracking
-├── reports/              # Generated reports and visualizations
-├── models/               # Trained models and artifacts
-├── notebooks/            # Jupyter notebooks for analysis
-├── docs/                 # Project documentation
-├── references/           # Reference materials and datasets
-├── mlartifacts/          # ML artifacts and model versions
-├── pyproject.toml        # Project dependencies
-├── poetry.lock          # Locked dependencies
-├── pytest.ini           # pytest configuration
-├── Dockerfile           # Main Docker configuration
-├── Dockerfile.mlflow    # MLflow Docker configuration
-├── docker-compose.yml   # Docker Compose configuration
-├── Makefile             # Build automation
-├── .gitignore          # Git ignore rules
-└── LICENSE             # Project license
+.
+├── src/
+│   ├── employee_attrition_mlops/
+│   │   ├── api.py           # FastAPI backend for predictions and model info
+│   │   ├── config.py        # Configuration management and environment variables
+│   │   ├── data_processing.py # Data preprocessing and feature engineering
+│   │   └── utils.py         # Utility functions for data handling
+│   └── frontend/
+│       └── app.py          # Streamlit frontend for user interaction
+├── tests/
+│   ├── test_api.py        # API endpoint tests (unit and integration)
+│   ├── test_frontend.py   # Frontend logic tests (API integration)
+│   └── test_data_processing.py # Data processing pipeline tests
+├── scripts/
+│   ├── optimize_train_select.py # Model training and optimization
+│   ├── batch_predict.py    # Batch prediction processing
+│   └── seed_database_from_csv.py # Database initialization
+├── mlruns/                # MLflow tracking for experiments
+├── mlartifacts/          # MLflow artifacts storage
+├── models/               # Saved model artifacts
+├── reports/             # Generated reports and visualizations
+├── docs/                # Project documentation
+├── Dockerfile           # Main application container
+├── Dockerfile.mlflow    # MLflow tracking server container
+├── docker-compose.yml   # Container orchestration
+├── pyproject.toml       # Poetry dependencies
+└── README.md
 ```
 
-## Setup and Installation
+## Component Descriptions
 
-### Prerequisites
+### Backend Components
 
-- Python 3.8+
-- Poetry (recommended) or pip
-- Git
-- Docker (optional)
-- ODBC driver for database connectivity
+#### 1. FastAPI Backend (`src/employee_attrition_mlops/api.py`)
+- **Purpose**: Provides RESTful API endpoints for predictions and model information
+- **Key Features**:
+  - `/predict` endpoint for real-time predictions
+  - `/health` endpoint for system health monitoring
+  - `/model-info` endpoint for model metadata
+  - Database integration for prediction logging
+  - MLflow model registry integration
 
-### Installation
+#### 2. Configuration Management (`src/employee_attrition_mlops/config.py`)
+- **Purpose**: Manages environment variables and configuration settings
+- **Key Features**:
+  - Database connection strings
+  - MLflow tracking URI
+  - API settings
+  - Model registry settings
 
-1. Clone the repository:
+#### 3. Data Processing (`src/employee_attrition_mlops/data_processing.py`)
+- **Purpose**: Handles data preprocessing and feature engineering
+- **Key Features**:
+  - Data cleaning and validation
+  - Feature engineering
+  - Data transformation pipelines
+  - Data quality checks
+
+#### 4. Utility Functions (`src/employee_attrition_mlops/utils.py`)
+- **Purpose**: Provides helper functions for data handling and processing
+- **Key Features**:
+  - Data validation utilities
+  - Logging functions
+  - Error handling utilities
+
+### Frontend Components
+
+#### 1. Streamlit Frontend (`src/frontend/app.py`)
+- **Purpose**: Provides a user-friendly interface for predictions
+- **Key Features**:
+  - Interactive form for prediction inputs
+  - Real-time prediction display
+  - Model information visualization
+  - Error handling and user feedback
+
+### Scripts
+
+#### 1. Model Training (`scripts/optimize_train_select.py`)
+- **Purpose**: Handles model training and optimization
+- **Key Features**:
+  - Automated model selection
+  - Hyperparameter optimization
+  - Cross-validation
+  - Model evaluation and logging
+
+#### 2. Batch Prediction (`scripts/batch_predict.py`)
+- **Purpose**: Processes batch predictions
+- **Key Features**:
+  - Efficient batch processing
+  - Error handling and logging
+  - Results validation
+  - Performance optimization
+
+#### 3. Database Initialization (`scripts/seed_database_from_csv.py`)
+- **Purpose**: Initializes the database with seed data
+- **Key Features**:
+  - Data validation
+  - Database schema creation
+  - Data seeding
+  - Error handling
+
+## Testing Strategy
+
+### 1. Unit Tests
+- **Purpose**: Test individual components in isolation
+- **Coverage**:
+  - API endpoint logic
+  - Data processing functions
+  - Utility functions
+  - Configuration management
+
+### 2. Integration Tests
+- **Purpose**: Test component interactions
+- **Coverage**:
+  - API and database integration
+  - Frontend and API integration
+  - Data processing pipeline
+  - Model training pipeline
+
+### 3. End-to-End Tests
+- **Purpose**: Test complete workflows
+- **Coverage**:
+  - Prediction workflow
+  - Model training workflow
+  - Batch prediction workflow
+
+## Docker Setup
+
+### 1. Main Application Container (`Dockerfile`)
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && poetry install --no-dev
+COPY . .
+CMD ["poetry", "run", "uvicorn", "src.employee_attrition_mlops.api:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### 2. MLflow Container (`Dockerfile.mlflow`)
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && poetry install --no-dev
+COPY . .
+CMD ["poetry", "run", "mlflow", "server", "--host", "0.0.0.0", "--port", "5000"]
+```
+
+### 3. Docker Compose (`docker-compose.yml`)
+```yaml
+version: '3'
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL}
+    depends_on:
+      - mlflow
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/app/mlruns
+      - ./mlartifacts:/app/mlartifacts
+```
+
+## Streamlit Setup
+
+### 1. Frontend Container
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN pip install poetry && poetry install --no-dev
+COPY . .
+CMD ["poetry", "run", "streamlit", "run", "src/frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+```
+
+### 2. Docker Compose Addition
+```yaml
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - api
+      - mlflow
+```
+
+## Setup
+
+1. **Install Dependencies**
    ```bash
-   git clone https://github.com/yourusername/employee-attrition-mlops.git
-   cd employee-attrition-mlops
-   ```
-
-2. Install dependencies:
-   ```bash
-   # Using Poetry (recommended)
    poetry install
+   ```
+
+2. **Environment Variables**
+   Create a `.env` file with:
+   ```
+   MLFLOW_TRACKING_URI=your_mlflow_uri
+   DATABASE_URL_PYMSSQL=your_database_url
+   ```
+
+3. **Run with Docker**
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Run Locally**
+   ```bash
+   # API
+   poetry run uvicorn src.employee_attrition_mlops.api:app --reload
    
-   # Or using pip
-   pip install -r requirements.txt
+   # Frontend
+   poetry run streamlit run src/frontend/app.py
    ```
-
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-### Database Setup
-
-1. Set up your database (SQL Server, PostgreSQL, etc.)
-2. Configure the connection string in your `.env` file:
-   ```
-   DATABASE_URL_PYODBC=mssql+pyodbc://username:password@server/database?driver=ODBC+Driver+17+for+SQL+Server
-   ```
-3. Install the appropriate ODBC driver:
-   - On macOS: `brew install unixodbc`
-   - On Windows: Install the appropriate ODBC driver for your database
-   - On Linux: `apt-get install unixodbc-dev` or equivalent
-
-4. Seed the database with initial data:
-   ```bash
-   python scripts/seed_database_from_csv.py
-   ```
-
-## Data Processing
-
-The data processing pipeline includes:
-
-### Custom Transformers
-- `BoxCoxSkewedTransformer`: Handles skewed numerical columns
-- `AddNewFeaturesTransformer`: Creates derived features (AgeAtJoining, TenureRatio, etc.)
-- `AgeGroupTransformer`: Categorizes age into groups
-- `CustomOrdinalEncoder`: Handles categorical variables
-- `LogTransformSkewed`: Alternative transformation for skewed data
-
-### Data Loading and Cleaning
-- Database connectivity with error handling
-- Data validation and cleaning
-- Feature engineering
-- Missing value handling
-- Outlier detection
-
-### Pipeline Configuration
-- Configurable preprocessing steps
-- Support for different encoding strategies
-- Flexible scaling options
-
-## Model Training and Optimization
-
-The project includes comprehensive model training and optimization capabilities:
-
-### Training Pipeline
-- Automated model selection
-- Hyperparameter optimization
-- Cross-validation
-- Model performance tracking with MLflow
-
-### Optimization Script
-The `optimize_train_select.py` script provides:
-- Automated model selection
-- Hyperparameter tuning
-- Cross-validation
-- Performance metrics tracking
-- Model persistence
-
-### Batch Prediction
-The `batch_predict.py` script enables:
-- Bulk prediction processing
-- Database integration
-- Result storage and reporting
-
-## API and Deployment
-
-The API module (`api.py`) provides:
-- REST endpoints for model inference
-- Data validation
-- Error handling
-- Response formatting
-
-### Deployment Options
-1. Local deployment
-2. Docker container deployment
-3. Cloud platform deployment (AWS, GCP, Azure)
-
-## Web Interface
-
-The project includes a Streamlit web application (`src/app.py`) that provides:
-- Interactive user interface for making predictions
-- Real-time model inference
-- Visualization of prediction results
-- Model information and performance metrics
-- User-friendly forms for data input
-
-### Running the Web Interface
-
-```bash
-# Start the Streamlit app
-streamlit run src/app.py
-```
 
 ## Testing
 
-The project includes comprehensive tests:
-- Unit tests for transformers and utilities
-- Integration tests for database connectivity
-- Batch prediction tests
-- Performance tests
-- Edge case handling
-
-### Running Tests
-
+Run tests with:
 ```bash
-# Run all tests except integration tests
-pytest -m "not integration"
+# All tests
+poetry run pytest
 
-# Run only integration tests
-pytest -m integration
-
-# Run all tests
-pytest
+# Specific test file
+poetry run pytest tests/test_api.py
+poetry run pytest tests/test_frontend.py
+poetry run pytest tests/test_data_processing.py
 ```
 
-### Test Files
-- `test_data_processing.py`: Tests for data processing pipeline and transformers
-- `test_batch_predict.py`: Tests for batch prediction functionality
-- `test_utils.py`: Tests for utility functions
+## Development
 
-### Database Connection Requirements for Tests
+- **Code Style**: Uses black, isort, and flake8 for code formatting
+- **Type Checking**: Uses mypy for static type checking
+- **Testing**: Uses pytest for testing
+- **Dependency Management**: Uses Poetry for dependency management
 
-Integration tests require:
-1. A `.env` file with `DATABASE_URL_PYODBC` variable
-2. The `pyodbc` package installed
-3. ODBC driver installed (see Setup and Installation section)
+## Contributing
 
-## Docker Support
-
-The project includes Docker support with two configurations:
-- Main application container
-- MLflow tracking server container
-
-### Building and Running with Docker
-
-```bash
-# Build and start all services
-docker-compose up --build
-
-# Or individual services
-docker-compose up api
-docker-compose up mlflow
-```
-
-## Development Tools
-
-### Makefile Commands
-The project includes a comprehensive Makefile with commands for:
-- Building Docker images
-- Running tests
-- Cleaning build artifacts
-- Database management
-- Development setup
-
-### MLflow Integration
-- Experiment tracking
-- Model versioning
-- Performance metrics visualization
-- Parameter tracking
-
-### Documentation
-- API documentation
-- Development guides
-- Deployment instructions
-- Testing guidelines
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the terms of the license included in the repository.
+MIT License - see LICENSE file for details
