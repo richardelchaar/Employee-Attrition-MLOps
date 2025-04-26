@@ -69,11 +69,33 @@ def mock_engine():
         yield engine
 
 def test_batch_prediction_flow(mock_model, mock_engine):
-    with mock.patch('mlflow.pyfunc.load_model', return_value=mock_model):
-        with mock.patch('scripts.batch_predict.create_engine', return_value=mock_engine):
-            batch_predict.main()
-
-            # Asserts
-            mock_model.predict.assert_called_once()
-            assert mock_engine.connect.called
-            assert mock_engine.begin.called
+    # Mock MLflow client and model loading
+    mock_client = mock.MagicMock()
+    mock_registered_model = mock.MagicMock()
+    mock_version = mock.MagicMock()
+    mock_version.version = "1"
+    mock_registered_model.latest_versions = [mock_version]
+    mock_client.get_registered_model.return_value = mock_registered_model
+    
+    with mock.patch('mlflow.tracking.MlflowClient', return_value=mock_client), \
+         mock.patch('mlflow.sklearn.load_model', return_value=mock_model), \
+         mock.patch('scripts.batch_predict.create_engine', return_value=mock_engine), \
+         mock.patch('scripts.batch_predict.sys.exit') as mock_exit:
+        
+        # Call the main function
+        batch_predict.main()
+        
+        # Verify the model was loaded and predict was called
+        mock_client.get_registered_model.assert_called_once()
+        mock_model.predict.assert_called_once()
+        
+        # Verify database operations were performed
+        assert mock_engine.connect.called
+        assert mock_engine.begin.called
+        
+        # Verify data was written to the database
+        mock_conn = mock_engine.connect.return_value.__enter__.return_value
+        assert mock_conn.execute.called, "Database write operation was not performed"
+        
+        # Verify sys.exit was not called (indicating success)
+        mock_exit.assert_not_called()
