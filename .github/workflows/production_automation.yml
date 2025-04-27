@@ -229,7 +229,7 @@ jobs:
           download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download drift reference
-          download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download final model pipeline
           download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
