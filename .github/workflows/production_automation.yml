@@ -37,10 +37,12 @@ jobs:
         poetry install
     
     - name: Set up environment
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }} # Use secret if it's sensitive/external
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }} # Use secret
       run: |
-        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
-        
+        echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://127.0.0.1:5001}" >> $GITHUB_ENV # Provide default if secret isn't set AND local is acceptable fallback
+        echo "DATABASE_URL_PYMSSQL=$DATABASE_URL_PYMSSQL:-mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
         
     - name: Run tests
       run: |
@@ -76,10 +78,13 @@ jobs:
         poetry install
     
     - name: Set up environment
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }} # Use secret if it's sensitive/external
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }} # Use secret
       run: |
-        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
-        
+        echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://127.0.0.1:5001}" >> $GITHUB_ENV # Provide default if secret isn't set AND local is acceptable fallback
+        echo "DATABASE_URL_PYMSSQL=$DATABASE_URL_PYMSSQL:-mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+          
     - name: Start MLflow server
       run: |
         poetry run mlflow server --host 127.0.0.1 --port 5001 &
@@ -129,9 +134,12 @@ jobs:
         poetry install
     
     - name: Set up environment
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }} # Use secret if it's sensitive/external
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }} # Use secret
       run: |
-        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+        echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI:-http://127.0.0.1:5001}" >> $GITHUB_ENV # Provide default if secret isn't set AND local is acceptable fallback
+        echo "DATABASE_URL_PYMSSQL=$DATABASE_URL_PYMSSQL:-mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
         
     - name: Start MLflow server
       run: |
