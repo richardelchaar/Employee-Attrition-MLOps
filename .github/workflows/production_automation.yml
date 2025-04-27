@@ -202,6 +202,46 @@ jobs:
       run: |
         # Get the run ID
         RUN_ID=${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}
+
+        # Get the latest model version and experiment ID from MLflow
+        MLFLOW_INFO=$(poetry run python -c "
+          import mlflow
+          client = mlflow.tracking.MlflowClient()
+          versions = client.get_latest_versions('AttritionProductionModel', stages=['Staging'])
+          if versions:
+              print(f'{versions[0].version},{versions[0].run_id}')
+          else:
+              print('1,')
+        ")
+        
+        MODEL_VERSION=$(echo $MLFLOW_INFO | cut -d',' -f1)
+        EXPERIMENT_ID=$(poetry run python -c "
+          import mlflow
+          client = mlflow.tracking.MlflowClient()
+          run = client.get_run('$RUN_ID')
+          print(run.info.experiment_id)
+        ")
+        
+        # Create version directory for meta.yaml
+        mkdir -p mlruns/models/AttritionProductionModel/version-$MODEL_VERSION
+        
+        # Create meta.yaml in the correct location with MLflow's format
+        cat > mlruns/models/AttritionProductionModel/version-$MODEL_VERSION/meta.yaml << EOL
+aliases: []
+creation_timestamp: $(date +%s%3N)
+current_stage: Staging
+description: 'Model trained with optimize_train_select.py'
+last_updated_timestamp: $(date +%s%3N)
+name: AttritionProductionModel
+run_id: $RUN_ID
+run_link: ''
+source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+status: READY
+status_message: null
+storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+user_id: null
+version: $MODEL_VERSION
+EOL
         
         # Download MLflow artifacts using the utility function
         poetry run python -c "
@@ -210,22 +250,22 @@ jobs:
           from src.employee_attrition_mlops.utils import download_mlflow_artifact
 
           # Download evaluation reports
-          download_mlflow_artifact('$RUN_ID', 'evaluation_reports')
+          download_mlflow_artifact('$RUN_ID', 'evaluation_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download explainability reports
-          download_mlflow_artifact('$RUN_ID', 'explainability_reports')
+          download_mlflow_artifact('$RUN_ID', 'explainability_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download data baselines
-          download_mlflow_artifact('$RUN_ID', 'data_baselines')
+          download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download drift reference
-          download_mlflow_artifact('$RUN_ID', 'drift_reference')
+          download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download final model pipeline
-          download_mlflow_artifact('$RUN_ID', 'final_model_pipeline')
+          download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download best Optuna trial parameters
-          download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json')
+          download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
         "
         
     # Step 5: Create summary issue
