@@ -68,7 +68,7 @@ try:
         AddNewFeaturesTransformer, AgeGroupTransformer # Ensure AgeGroupTransformer is imported
     )
     from employee_attrition_mlops.pipelines import create_preprocessing_pipeline, create_full_pipeline
-    from employee_attrition_mlops.utils import save_json, load_json
+    from employee_attrition_mlops.utils import save_json, load_json, generate_evidently_profile
     logger.info("Successfully imported local modules.")
 except ImportError as e:
     logger.error(f"Error importing project modules: {e}", exc_info=True)
