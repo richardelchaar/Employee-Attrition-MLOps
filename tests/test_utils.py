@@ -47,7 +47,7 @@ def test_save_json_success(tmp_path, sample_dict_data):
 
 @patch('builtins.open', new_callable=mock_open)
 @patch('os.makedirs')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.logger')
 def test_save_json_exception(mock_logger, mock_makedirs, mock_open_file, sample_dict_data):
     """Tests error handling during JSON saving."""
     file_path = "/fake/path/test.json"
@@ -83,7 +83,7 @@ def test_load_json_file_not_found(tmp_path):
     assert loaded_data is None
 
 @patch('builtins.open', new_callable=mock_open, read_data='invalid json')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.logger')
 def test_load_json_exception(mock_logger, mock_open_file):
     """Tests error handling for invalid JSON content."""
     file_path = "/fake/path/invalid.json"
@@ -105,13 +105,13 @@ def test_save_object_success(tmp_path, sample_object_data):
     assert file_path.parent.exists()
     assert file_path.exists()
 
-    # Assert the content can be loaded correctly (optional, but good check)
+    # Assert the content can be loaded correctly
     loaded_obj = joblib.load(file_path)
-    assert loaded_obj == sample_object_data # Requires __eq__ method in SimpleObject
+    assert loaded_obj == sample_object_data
 
 @patch('joblib.dump')
 @patch('os.makedirs')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.logger')
 def test_save_object_exception(mock_logger, mock_makedirs, mock_dump, sample_object_data):
     """Tests error handling during object saving."""
     file_path = "/fake/path/test.joblib"
@@ -134,7 +134,7 @@ def test_load_object_success(tmp_path, sample_object_data):
     joblib.dump(sample_object_data, file_path)
 
     loaded_obj = utils.load_object(str(file_path))
-    assert loaded_obj == sample_object_data # Requires __eq__ method in SimpleObject
+    assert loaded_obj == sample_object_data
 
 def test_load_object_file_not_found(tmp_path):
     """Tests handling FileNotFoundError when loading an object."""
@@ -143,7 +143,7 @@ def test_load_object_file_not_found(tmp_path):
     assert loaded_obj is None
 
 @patch('joblib.load')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.logger')
 def test_load_object_exception(mock_logger, mock_load):
     """Tests error handling during object loading (e.g., corrupted file)."""
     file_path = "/fake/path/corrupted.joblib"
@@ -158,10 +158,9 @@ def test_load_object_exception(mock_logger, mock_load):
     assert "Error loading object" in error_msg
     assert "Unexpected end of file" in error_msg
 
-
 # --- Tests for MLflow functions ---
 
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.MlflowClient')
 def test_get_production_model_run_id_success(MockMlflowClient):
     """Tests successfully getting a production model run_id."""
     mock_client_instance = MockMlflowClient.return_value
@@ -176,8 +175,8 @@ def test_get_production_model_run_id_success(MockMlflowClient):
     assert run_id == "test_run_id_123"
     mock_client_instance.get_latest_versions.assert_called_once_with(model_name, stages=[stage])
 
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.logger')
 def test_get_production_model_run_id_not_found(mock_logger, MockMlflowClient):
     """Tests the case where no model version is found for the stage."""
     mock_client_instance = MockMlflowClient.return_value
@@ -192,8 +191,8 @@ def test_get_production_model_run_id_not_found(mock_logger, MockMlflowClient):
     mock_logger.warning.assert_called_once()
     assert "No model version found" in mock_logger.warning.call_args[0][0]
 
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.logger')
 def test_get_production_model_run_id_exception(mock_logger, MockMlflowClient):
     """Tests error handling during MLflow client interaction."""
     mock_client_instance = MockMlflowClient.return_value
@@ -210,7 +209,7 @@ def test_get_production_model_run_id_exception(mock_logger, MockMlflowClient):
     assert "Error fetching production model run_id" in error_msg
     assert "MLflow connection error" in error_msg
 
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.MlflowClient')
 def test_download_mlflow_artifact_success(MockMlflowClient):
     """Tests successful download of an MLflow artifact."""
     mock_client_instance = MockMlflowClient.return_value
@@ -226,7 +225,7 @@ def test_download_mlflow_artifact_success(MockMlflowClient):
     assert local_path == expected_local_path
     mock_client_instance.download_artifacts.assert_called_once_with(run_id, artifact_path, dst_path)
 
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.MlflowClient')
 def test_download_mlflow_artifact_success_no_dst(MockMlflowClient):
     """Tests successful download without specifying a destination path."""
     mock_client_instance = MockMlflowClient.return_value
@@ -242,9 +241,8 @@ def test_download_mlflow_artifact_success_no_dst(MockMlflowClient):
     # When dst_path is None, the third argument to download_artifacts is None
     mock_client_instance.download_artifacts.assert_called_once_with(run_id, artifact_path, None)
 
-
-@patch('src.employee_attrition_mlops.utils.MlflowClient')
-@patch('src.employee_attrition_mlops.utils.logger')
+@patch('employee_attrition_mlops.utils.MlflowClient')
+@patch('employee_attrition_mlops.utils.logger')
 def test_download_mlflow_artifact_exception(mock_logger, MockMlflowClient):
     """Tests error handling during artifact download."""
     mock_client_instance = MockMlflowClient.return_value
