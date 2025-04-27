@@ -21,7 +21,7 @@ try:
         TARGET_COLUMN,
         SNAPSHOT_DATE_COL,
         EMPLOYEE_ID_COL,
-        DATABASE_URL_PYODBC,
+        DATABASE_URL_PYMSSQL,
         MLFLOW_TRACKING_URI
     )
 except ImportError:
@@ -119,7 +119,7 @@ def mock_transformers():
 def mock_env_vars():
     """Mock environment variables needed by batch_predict.py"""
     with mock.patch.dict('os.environ', {
-        'DATABASE_URL_PYODBC': DATABASE_URL_PYODBC,
+        'DATABASE_URL_PYMSSQL': DATABASE_URL_PYMSSQL,
         'MLFLOW_TRACKING_URI': MLFLOW_TRACKING_URI
     }):
         yield
@@ -228,13 +228,13 @@ def test_prediction_generation_failure(mock_mlflow_client, mock_engine, mock_tra
 def test_missing_environment_variables(mock_engine, mock_sys_exit):
     """Test handling of missing environment variables."""
     # Create a mock for the main function that raises an exception
-    with mock.patch('scripts.batch_predict.main', side_effect=Exception("DATABASE_URL_PYODBC is not configured")):
+    with mock.patch('scripts.batch_predict.main', side_effect=Exception("DATABASE_URL_PYMSSQL is not configured")):
         # Call the main function and expect it to exit with code 1
         with pytest.raises(Exception) as excinfo:
             batch_predict.main()
         
         # Verify the error message
-        assert "DATABASE_URL_PYODBC is not configured" in str(excinfo.value)
+        assert "DATABASE_URL_PYMSSQL is not configured" in str(excinfo.value)
 
 
 def test_complete_batch_prediction_flow(mock_mlflow_client, mock_engine, mock_transformers, mock_env_vars, mock_sys_exit):

@@ -18,7 +18,7 @@ from scipy.stats import skew
 
 # Import the necessary components from your source code
 # Adjust path if necessary
-from src.employee_attrition_mlops.data_processing import (
+from employee_attrition_mlops.data_processing import (
     BoxCoxSkewedTransformer,
     AddNewFeaturesTransformer,
     CustomOrdinalEncoder,
@@ -28,11 +28,11 @@ from src.employee_attrition_mlops.data_processing import (
     find_skewed_columns,
     AgeGroupTransformer
 )
-from src.employee_attrition_mlops.pipelines import create_preprocessing_pipeline
+from employee_attrition_mlops.pipelines import create_preprocessing_pipeline
 # Import config variables used in data_processing code to align tests
 # This ensures tests use the same constants as the source code
 try:
-    from src.employee_attrition_mlops.config import (
+    from employee_attrition_mlops.config import (
         TARGET_COLUMN, BUSINESS_TRAVEL_MAPPING,
         COLS_TO_DROP_POST_LOAD, DB_HISTORY_TABLE,
         SNAPSHOT_DATE_COL, SKEWNESS_THRESHOLD
@@ -42,7 +42,7 @@ except ImportError:
 
 
 # Setup logging for tests - Capture logs from the module being tested
-logger = logging.getLogger('src.employee_attrition_mlops.data_processing') # Target specific logger
+logger = logging.getLogger('employee_attrition_mlops.data_processing') # Target specific logger
 logger.setLevel(logging.DEBUG) # Ensure debug messages are captured if needed
 
 
@@ -473,9 +473,9 @@ def test_custom_ordinal_encoder_missing_column(sample_data, caplog):
 
 
 # --- Data Loading and Cleaning Tests ---
-# Mock the DATABASE_URL_PYODBC used within the function
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+# Mock the DATABASE_URL_PYMSSQL used within the function
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_from_db_success(mock_create_engine, sample_data, caplog):
     """Test successful data loading and basic cleaning."""
     # Instantiate the mock engine and connection
@@ -511,8 +511,8 @@ def test_load_and_clean_data_from_db_success(mock_create_engine, sample_data, ca
     assert any("Successfully loaded" in rec.message for rec in caplog.records) # Check success log
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_from_db_table_missing(mock_create_engine, caplog):
     """Test graceful handling when the database table does not exist."""
     mock_engine = mock_create_engine.return_value
@@ -528,8 +528,8 @@ def test_load_and_clean_data_from_db_table_missing(mock_create_engine, caplog):
     assert any(f"Table '{DB_HISTORY_TABLE}' does not exist" in record.message for record in caplog.records if record.levelname == 'ERROR')
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_db_connection_error(mock_create_engine, caplog):
     """Test graceful handling of database connection errors."""
     db_error = SQLAlchemyError("Connection failed")
@@ -543,8 +543,8 @@ def test_load_and_clean_data_db_connection_error(mock_create_engine, caplog):
     assert any(str(db_error) in record.message for record in caplog.records)
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_read_sql_error(mock_create_engine, caplog):
     """Test graceful handling of errors during pandas read_sql_table."""
     read_error = ValueError("Pandas read error") # Simulate a non-DB error during read
@@ -563,8 +563,8 @@ def test_load_and_clean_data_read_sql_error(mock_create_engine, caplog):
     assert any(str(read_error) in record.message for record in caplog.records)
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_empty_table(mock_create_engine, caplog):
     """Test handling when the table exists but is empty (returns empty DataFrame)."""
     mock_engine = mock_create_engine.return_value
@@ -582,8 +582,8 @@ def test_load_and_clean_data_empty_table(mock_create_engine, caplog):
     assert any("Successfully loaded 0 rows" in rec.message for rec in caplog.records) # Check load success log
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_missing_target(mock_create_engine, sample_data, caplog):
     """Test handling when the target column is missing (proceeds without conversion)."""
     data_missing_target = sample_data.copy().drop(columns=[TARGET_COLUMN])
@@ -601,8 +601,8 @@ def test_load_and_clean_data_missing_target(mock_create_engine, sample_data, cap
     assert not any("Converting target column" in record.message for record in caplog.records) # Verify conversion wasn't attempted
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_invalid_target_values(mock_create_engine, sample_data, caplog):
     """Test handling when target column has unexpected values (skips conversion)."""
     data_invalid_target = sample_data.copy()
@@ -627,8 +627,8 @@ def test_load_and_clean_data_invalid_target_values(mock_create_engine, sample_da
     assert any("Skipping automatic conversion" in record.message for record in caplog.records)
 
 
-@patch('src.employee_attrition_mlops.data_processing.DATABASE_URL_PYODBC', "mock_db_url_for_tests")
-@patch('src.employee_attrition_mlops.data_processing.create_engine')
+@patch('employee_attrition_mlops.data_processing.DATABASE_URL_PYMSSQL', "mock_db_url_for_tests")
+@patch('employee_attrition_mlops.data_processing.create_engine')
 def test_load_and_clean_data_missing_drop_cols(mock_create_engine, sample_data, caplog):
     """Test cleaning works even if some columns to drop are already missing."""
     cols_to_actually_drop = [c for c in COLS_TO_DROP_POST_LOAD if c in sample_data.columns]
@@ -1017,9 +1017,9 @@ def test_preprocessing_pipeline_with_real_data():
     load_dotenv()
     
     # Check if database URL is available
-    db_url = os.getenv('DATABASE_URL_PYODBC')
+    db_url = os.getenv('DATABASE_URL_PYMSSQL')
     if not db_url:
-        pytest.skip("DATABASE_URL_PYODBC not found in environment variables")
+        pytest.skip("DATABASE_URL_PYMSSQL not found in environment variables")
     
     # Check for ODBC driver
     try:
@@ -1036,7 +1036,7 @@ def test_preprocessing_pipeline_with_real_data():
             pytest.skip(f"Error importing pyodbc: {str(e)}")
     
     # Load data from database
-    from src.employee_attrition_mlops.data_processing import load_and_clean_data_from_db
+    from employee_attrition_mlops.data_processing import load_and_clean_data_from_db
     try:
         data = load_and_clean_data_from_db()
     except Exception as e:
