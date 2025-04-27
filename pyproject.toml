@@ -21,8 +21,8 @@ packages = [{include = "employee_attrition_mlops", from = "src"}]
 # --- Dependencies Section (all original dependencies retained) ---
 [tool.poetry.dependencies]
 python = "~=3.11.0"
-pandas = "^2.0.0"
-numpy = "^1.24.0"
+pandas = ">=2.0.0,<2.1.0"
+numpy = ">=1.24.0,<1.25.0"
 scikit-learn = "1.6.1"
 optuna = "*"
 sqlalchemy = "*"
