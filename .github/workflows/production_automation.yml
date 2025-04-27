@@ -205,28 +205,28 @@ jobs:
         
         # Download MLflow artifacts using the utility function
         poetry run python -c "
-import sys
-sys.path.append('.')
-from src.employee_attrition_mlops.utils import download_mlflow_artifact
+          import sys
+          sys.path.append('.')
+          from src.employee_attrition_mlops.utils import download_mlflow_artifact
 
-# Download evaluation reports
-download_mlflow_artifact('$RUN_ID', 'evaluation_reports')
+          # Download evaluation reports
+          download_mlflow_artifact('$RUN_ID', 'evaluation_reports')
 
-# Download explainability reports
-download_mlflow_artifact('$RUN_ID', 'explainability_reports')
+          # Download explainability reports
+          download_mlflow_artifact('$RUN_ID', 'explainability_reports')
 
-# Download data baselines
-download_mlflow_artifact('$RUN_ID', 'data_baselines')
+          # Download data baselines
+          download_mlflow_artifact('$RUN_ID', 'data_baselines')
 
-# Download drift reference
-download_mlflow_artifact('$RUN_ID', 'drift_reference')
+          # Download drift reference
+          download_mlflow_artifact('$RUN_ID', 'drift_reference')
 
-# Download final model pipeline
-download_mlflow_artifact('$RUN_ID', 'final_model_pipeline')
+          # Download final model pipeline
+          download_mlflow_artifact('$RUN_ID', 'final_model_pipeline')
 
-# Download best Optuna trial parameters
-download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json')
-"
+          # Download best Optuna trial parameters
+          download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json')
+        "
         
     # Step 5: Create summary issue
     - name: Create summary issue
