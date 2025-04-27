@@ -30,7 +30,15 @@ A full-stack MLOps solution for employee attrition prediction, featuring:
 3. Access:
    - API: http://localhost:8000
    - Frontend: http://localhost:8501
-   - MLflow: http://localhost:5000
+   - MLflow: http://localhost:5001
+
+## Docker Services
+
+| Service        | Purpose                | Port | Description                                    |
+|----------------|------------------------|------|------------------------------------------------|
+| api            | Backend API (FastAPI)  | 8000 | Serves predictions and model info              |
+| frontend       | Frontend (Streamlit)   | 8501 | Interactive dashboard for predictions          |
+| mlflow-server  | MLflow Tracking Server | 5001 | Model tracking, experiments, and artifacts     |
 
 ## Project Structure
 
@@ -125,7 +133,7 @@ Create a `.env` file in the root directory with the following variables:
 DATABASE_URL_PYMSSQL=mssql+pymssql://username:password@hostname:1433/database
 
 # MLflow Configuration
-MLFLOW_TRACKING_URI=http://localhost:5000  # Default local MLflow server
+MLFLOW_TRACKING_URI=http://localhost:5001  # MLflow server
 MLFLOW_MODEL_NAME=employee_attrition_model
 MLFLOW_MODEL_STAGE=Production
 
@@ -139,13 +147,13 @@ Replace the placeholder values with your actual configuration:
 - `password`: Your database password
 - `hostname`: Your database host
 - `database`: Your database name
-- `MLFLOW_TRACKING_URI`: Your MLflow server URL (default: http://localhost:5000)
+- `MLFLOW_TRACKING_URI`: Your MLflow server URL (default: http://localhost:5001)
 
 ### Running the Application
 
 1. Start MLflow server (if not already running):
 ```bash
-mlflow server --host 0.0.0.0 --port 5000
+mlflow server --host 0.0.0.0 --port 5001
 ```
 
 2. Start the FastAPI server:

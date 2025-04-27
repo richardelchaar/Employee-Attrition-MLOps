@@ -55,6 +55,11 @@ This guide will help you set up and run the Employee Attrition MLOps project.
    - Frontend: http://localhost:8501
    - MLflow: http://localhost:5001
 
+3. **Docker Services Overview**
+   - **API (FastAPI)**: Backend service that serves predictions and model information
+   - **Frontend (Streamlit)**: Interactive dashboard for making predictions and viewing model info
+   - **MLflow Server**: Tracks experiments, manages model versions, and stores artifacts
+
 ### Running Locally
 
 1. **Start MLflow server**
