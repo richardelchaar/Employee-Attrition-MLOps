@@ -55,6 +55,9 @@ pydantic = {extras = ["email"], version = "^2.0.0"}
 tpot = "^0.11.7"
 dowhy = "*"
 ruff = "*"
+streamlit = "*"
+streamlit_option_menu = "*"
+httpx = "^0.27.0"
 
 # --- Dependency Groups (kept as original) ---
 [tool.poetry.group.dev.dependencies]

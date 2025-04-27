@@ -104,7 +104,7 @@ PRODUCTION_MODEL_NAME = "AttritionProductionModel" # Registered model name for A
 
 # --- MLflow ---
 # Load MLflow tracking URI from environment or use a default
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5001")
 # Note: If running MLflow server in Docker, client URI might need adjustment
 # (e.g., "http://host.docker.internal:5000" from another container, or service name in docker-compose)
 DEFAULT_EXPERIMENT_NAME = "Employee Attrition Default (DB)" # Default experiment if none is set explicitly

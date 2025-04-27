@@ -14,7 +14,7 @@ from dotenv import load_dotenv # Added
 try:
     from .config import (TARGET_COLUMN, BUSINESS_TRAVEL_MAPPING,
                          COLS_TO_DROP_POST_LOAD, DB_HISTORY_TABLE,
-                         DATABASE_URL_PYODBC,
+                         DATABASE_URL_PYMSSQL,
                          SNAPSHOT_DATE_COL, SKEWNESS_THRESHOLD) # Added DB related vars & SKEWNESS_THRESHOLD
 except ImportError as e:
      # Fallback or error handling if config import fails
@@ -24,7 +24,7 @@ except ImportError as e:
      BUSINESS_TRAVEL_MAPPING = {'Non-Travel': 0, 'Travel_Rarely': 1, 'Travel_Frequently': 2}
      COLS_TO_DROP_POST_LOAD = ['EmployeeCount', 'StandardHours', 'Over18']
      DB_HISTORY_TABLE = "employees_history"
-     DATABASE_URL_PYODBC = os.getenv("DATABASE_URL_PYODBC") # Try loading directly as fallback
+     DATABASE_URL_PYMSSQL = os.getenv("DATABASE_URL_PYMSSQL") # Try loading directly as fallback
      SNAPSHOT_DATE_COL = "SnapshotDate"
      SKEWNESS_THRESHOLD = 0.75
 
@@ -439,7 +439,7 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
     """
     Loads data from the specified database table using SQLAlchemy with pyodbc.
     Handles potential connection errors, and performs initial cleaning.
-    Uses DATABASE_URL_PYODBC from config.
+    Uses DATABASE_URL_PYMSSQL from config.
 
     Args:
         table_name: The name of the table to load data from.
@@ -448,11 +448,11 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
         A pandas DataFrame containing the loaded and initially cleaned data,
         or None if loading fails.
     """
-    if not DATABASE_URL_PYODBC:
-        logger.error("DATABASE_URL_PYODBC is not configured. Cannot load data from DB.")
+    if not DATABASE_URL_PYMSSQL:
+        logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot load data from DB.")
         return None
 
-    connection_string = DATABASE_URL_PYODBC # Use the specific URL for pyodbc
+    connection_string = DATABASE_URL_PYMSSQL # Use the specific URL for pyodbc
     logger.info(f"Attempting DB connection using pyodbc driver (URL from config).")
 
     engine = None
