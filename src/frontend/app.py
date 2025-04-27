@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import requests
 from datetime import datetime
+import os
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -153,7 +154,11 @@ if selected_tab == "Live Prediction":
                     }
 
             # Make API request to perform prediction (replace with your actual API endpoint)
-            response = requests.post("http://localhost:8000/predict", json=data)
+            try:
+                api_url = os.getenv("API_URL", "http://api:8000")
+                response = requests.post(f"{api_url}/predict", json=data)
+            except Exception as e:
+                response = requests.post("http://localhost:8000/predict", json=data)
             
             if response.status_code == 200:
                 prediction = response.json().get("prediction", "No prediction available.")
@@ -171,7 +176,12 @@ elif selected_tab == "Model Info":
     st.header("Model Info")
 
     # Fetch model info from the API
-    response = requests.get("http://localhost:8000/model-info")
+    try:
+        api_url = os.getenv("API_URL", "http://api:8000")
+        response = requests.get(f"{api_url}/model-info")
+    except Exception as e:
+        response = requests.get("http://localhost:8000/model-info")
+
     if response.status_code == 200:        
         model_info = response.json()
         model_ver = model_info['latest_registered_version']
@@ -180,8 +190,9 @@ elif selected_tab == "Model Info":
         with open(model, 'r') as f:
             model_yaml = yaml.safe_load(f)
             model_source = model_yaml['source'].split('/')
-            best_trial_path = f"mlartifacts/{model_source[1]}/{model_source[2]}/{model_source[3]}/best_optuna_trial_params.json"
-            with open(best_trial_path, 'r') as f:
+            best_trial_path = f"mlartifacts/{model_source[1]}/{model_source[2]}/{model_source[3]}"
+
+            with open(f"{best_trial_path}/best_optuna_trial_params.json", 'r') as f:
                 best_trial_params = json.load(f)
                 model_name = best_trial_params['model_type'].replace('_', ' ').title()
         
@@ -199,7 +210,7 @@ elif selected_tab == "Model Info":
 
     with col1:
         try:
-            with open(f"reports/confusion_matrix_{run_id}.json", 'r') as f:
+            with open(f"{best_trial_path}/evaluation_reports/confusion_matrix_{run_id}.json", 'r') as f:
                 confusion_matrix = json.load(f)
                 
                 # Create a figure for the confusion matrix
@@ -218,7 +229,7 @@ elif selected_tab == "Model Info":
     
     with col2:
         try:
-            st.image(f"reports/roc_curve_{run_id}.png")
+            st.image(f"{best_trial_path}/evaluation_reports/roc_curve_{run_id}.png")
         except FileNotFoundError:
             st.warning("ROC curve plot not found.")
     
@@ -228,19 +239,19 @@ elif selected_tab == "Model Info":
 
     with col1:
         try:
-            st.image(f"reports/feature_importance_{run_id}.png", caption="Feature Importance")
+            st.image(f"{best_trial_path}/explainability_reports/feature_importance_{run_id}.png", caption="Feature Importance")
         except FileNotFoundError:
             st.warning("Feature importance plot not found.")
     
     with col2:
         try:
-            st.image(f"reports/shap_summary_{run_id}.png", caption="SHAP Summary Plot")
+            st.image(f"{best_trial_path}/explainability_reports/shap_summary_{run_id}.png", caption="SHAP Summary Plot")
         except FileNotFoundError:
             st.warning("SHAP summary plot not found.")
     
     # Load and display fairness report
     try:
-        with open(f"reports/fairness_report_{run_id}.json", 'r') as f:
+        with open(f"{best_trial_path}/evaluation_reports/fairness_report_{run_id}.json", 'r') as f:
             fairness_report = json.load(f)
             st.subheader("Fairness Metrics")
             
