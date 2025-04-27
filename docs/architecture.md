@@ -94,14 +94,14 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph Docker Containers
+    subgraph DockerContainers
         direction TB
         FastAPI[FastAPI Container]
         MLflow[MLflow Container]
         Streamlit[Streamlit Container]
     end
 
-    subgraph External Services
+    subgraph ExternalServices
         GitHub[GitHub Actions]
         DB[(Database)]
     end
@@ -122,7 +122,7 @@ graph TB
     MLflow -->|Store Artifacts| MLartifacts
 
     %% External Connections
-    GitHub -->|Deploy| Docker Containers
+    GitHub -->|Deploy| DockerContainers
 
     %% Styling
     classDef container fill:#bbf,stroke:#333,stroke-width:2px
