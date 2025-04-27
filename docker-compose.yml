@@ -9,13 +9,11 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      # Restore original volume mapping
       - ./mlruns:/mlflow_runs
       - ./mlartifacts:/mlflow_artifacts
     networks:
-      - mlflow_network
+      - app_network
     healthcheck:
-      # Corrected path for wget args
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5001"]
       interval: 10s
       timeout: 5s
@@ -24,7 +22,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile  # Your main backend Dockerfile
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -34,8 +32,6 @@ services:
       - DATABASE_URL=${DATABASE_URL_PYMSSQL}
       - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL}
       - MLFLOW_TRACKING_URI=http://mlflow-server:5001
-      # Remove MLFLOW_ARTIFACT_URI, should be handled by tracking server
-      # - MLFLOW_ARTIFACT_URI=http://mlflow-server:5001
       - DB_PREDICTION_LOG_TABLE=${DB_PREDICTION_LOG_TABLE:-prediction_logs}
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app:/app/src
@@ -44,12 +40,31 @@ services:
       - ./.env:/app/.env
     command: ["uvicorn", "employee_attrition_mlops.api:app", "--host", "0.0.0.0", "--port", "8000"]
     networks:
-      - mlflow_network
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "${FRONTEND_PORT:-8501}:8501"
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ./src/frontend:/app/src/frontend
+      - ./.env:/app/.env
+    command: ["streamlit", "run", "src/frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    networks:
+      - app_network
 
 networks:
-  mlflow_network:
+  app_network:
     driver: bridge
-
-# Remove unused volume definition
-# volumes:
-#  mlflow_data: 

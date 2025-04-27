@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_option_menu import option_menu
 import requests
 from datetime import datetime
+import os
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -153,7 +154,11 @@ if selected_tab == "Live Prediction":
                     }
 
             # Make API request to perform prediction (replace with your actual API endpoint)
-            response = requests.post("http://localhost:8000/predict", json=data)
+            try:
+                api_url = os.getenv("API_URL", "http://api:8000")
+                response = requests.post(f"{api_url}/predict", json=data)
+            except Exception as e:
+                response = requests.post("http://localhost:8000/predict", json=data)
             
             if response.status_code == 200:
                 prediction = response.json().get("prediction", "No prediction available.")
@@ -171,7 +176,12 @@ elif selected_tab == "Model Info":
     st.header("Model Info")
 
     # Fetch model info from the API
-    response = requests.get("http://localhost:8000/model-info")
+    try:
+        api_url = os.getenv("API_URL", "http://api:8000")
+        response = requests.get(f"{api_url}/model-info")
+    except Exception as e:
+        response = requests.get("http://localhost:8000/model-info")
+
     if response.status_code == 200:        
         model_info = response.json()
         model_ver = model_info['latest_registered_version']
