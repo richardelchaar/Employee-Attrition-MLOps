@@ -16,14 +16,14 @@ from evidently.metrics import DatasetDriftMetric
 # Add src directory to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from employee_attrition_mlops.config import (
+from .config import (
     MLFLOW_TRACKING_URI, PRODUCTION_MODEL_NAME, DRIFT_REPORT_FILENAME,
     REPORTS_PATH, RETRAIN_TRIGGER_FEATURE_COUNT
 )
-from employee_attrition_mlops.utils import (
+from .utils import (
     save_json, load_json, get_production_model_run_id, download_mlflow_artifact
 )
-from employee_attrition_mlops.data_processing import load_and_clean_data
+from .data_processing import load_and_clean_data
 
 # Set MLflow tracking URI
 mlflow.set_tracking_uri("http://127.0.0.1:5001")
@@ -131,7 +131,7 @@ def trigger_github_workflow(trigger_retraining):
     
     # Import GitHub workflow trigger functionality
     try:
-        from employee_attrition_mlops.github_actions import trigger_workflow
+        from .github_actions import trigger_workflow
         
         logger.info("Triggering GitHub workflow for model retraining.")
         success = trigger_workflow()
