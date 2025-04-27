@@ -1,4 +1,5 @@
 import mlflow
+import logging
 import pandas as pd
 import json
 import os
@@ -8,6 +9,10 @@ from evidently.metric_preset import DataDriftPreset
 
 # Set MLflow tracking URI
 mlflow.set_tracking_uri("http://127.0.0.1:5001")
+logging.getLogger('mlflow').setLevel(logging.DEBUG)
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def create_and_log_drift_reference(run_id, data_path=None):
     """Create and log drift reference artifacts for a model."""

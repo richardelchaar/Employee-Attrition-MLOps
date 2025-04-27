@@ -1,0 +1,174 @@
+# Getting Started
+
+This guide will help you set up and run the Employee Attrition MLOps project.
+
+## Prerequisites
+
+- Python 3.11
+- Docker and Docker Compose
+- Poetry (for dependency management)
+- Git
+
+## Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone [your-repo-url]
+   cd Employee-Attrition-2
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+3. **Install dependencies**
+   ```bash
+   poetry install
+   ```
+
+4. **Run tests**
+   ```bash
+   poetry run pytest
+   ```
+
+5. **Run linting**
+   ```bash
+   poetry run black .
+   poetry run isort .
+   poetry run flake8 .
+   poetry run mypy .
+   ```
+
+## Running the Project
+
+### Using Docker Compose
+
+1. **Build and start all services**
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Access the services**
+   - API: http://localhost:8000
+   - Frontend: http://localhost:8501
+   - MLflow: http://localhost:5001
+
+### Running Locally
+
+1. **Start MLflow server**
+   ```bash
+   poetry run mlflow server --host 127.0.0.1 --port 5001
+   ```
+
+2. **Start the API**
+   ```bash
+   poetry run uvicorn src.employee_attrition_mlops.api:app --reload
+   ```
+
+3. **Start the frontend**
+   ```bash
+   poetry run streamlit run src/frontend/app.py
+   ```
+
+## Project Structure
+
+```
+/
+├── .github/workflows/    # GitHub Actions workflows
+├── scripts/              # Automation and utility scripts
+├── src/                  # Source code
+│   ├── employee_attrition_mlops/  # Core ML logic
+│   └── frontend/         # Streamlit app
+├── tests/               # Test files
+├── docs/                # Documentation
+├── mlruns/              # MLflow tracking and artifacts
+└── reports/             # Generated reports
+```
+
+## Key Components
+
+### 1. API (FastAPI)
+- Serves predictions and model info
+- Endpoints:
+  - `/predict`: Real-time predictions
+  - `/model-info`: Model metadata
+  - `/health`: System health check
+
+### 2. Frontend (Streamlit)
+- Interactive interface for predictions
+- Real-time model info display
+- User-friendly forms
+
+### 3. MLflow
+- Model tracking and versioning
+- Experiment management
+- Artifact storage
+
+### 4. Automation
+- All automation is managed by `.github/workflows/production_automation.yml`
+- Includes:
+  - Testing and linting
+  - Drift detection
+  - Model retraining
+  - Batch prediction
+  - Model promotion
+  - API redeployment
+
+## Development Workflow
+
+1. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **Make your changes**
+
+3. **Run tests and linting**
+   ```bash
+   poetry run pytest
+   poetry run black .
+   poetry run isort .
+   poetry run flake8 .
+   poetry run mypy .
+   ```
+
+4. **Commit your changes**
+   ```bash
+   git add .
+   git commit -m "Your commit message"
+   ```
+
+5. **Push and create a PR**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+## Documentation
+
+- [CI/CD & Automation](ci_cd_automation.md)
+- [Monitoring & Retraining](monitoring.md)
+
+## Troubleshooting
+
+### Common Issues
+
+1. **MLflow Connection Issues**
+   - Ensure MLflow server is running
+   - Check MLFLOW_TRACKING_URI in .env
+
+2. **Database Connection Issues**
+   - Verify DATABASE_URL_PYMSSQL in .env
+   - Check database server status
+
+3. **Docker Issues**
+   - Ensure Docker daemon is running
+   - Check port conflicts
+   - Verify Docker Compose version
+
+### Getting Help
+
+- Check the [documentation](.)
+- Review [troubleshooting guides](.)
+- Create an issue in the repository 

@@ -1,4 +1,4 @@
-# Model Monitoring and Retraining Process
+# Model Monitoring and Retraining
 
 This document describes the automated monitoring and retraining process for the Employee Attrition model.
 
@@ -10,7 +10,7 @@ The system automatically monitors for data drift using the following process:
 
 1. **Scheduled Monitoring**: 
    - Runs daily via GitHub Actions
-   - Configured in `.github/workflows/drift_detection.yml`
+   - Configured in `.github/workflows/production_automation.yml`
    - Compares current data against the reference dataset
 
 2. **Drift Metrics**:
@@ -220,4 +220,4 @@ The following metrics are tracked:
    - Create promotion PR
    - Document changes
    - Get approvals
-   - Automated promotion on merge
+   - Automated promotion on merge 

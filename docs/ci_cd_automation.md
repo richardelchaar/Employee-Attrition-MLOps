@@ -4,13 +4,15 @@ This document describes the complete CI/CD pipeline and model lifecycle manageme
 
 ## CI/CD Pipeline Overview
 
-The CI/CD pipeline consists of two main workflows:
+The CI/CD pipeline is managed by a single workflow file:
 
-### 1. Main CI/CD Workflow (`.github/workflows/ci.yml`)
+### Main Workflow (`.github/workflows/production_automation.yml`)
 - **Trigger Conditions**:
   - Push to main branch
   - Pull requests
   - Daily scheduled runs
+  - Manual workflow dispatch
+  - PR review approval (for model promotion)
 
 - **Jobs**:
   1. **Test Job**
@@ -18,31 +20,12 @@ The CI/CD pipeline consists of two main workflows:
      - Performs code linting
      - Type checking
 
-  2. **Deploy Job**
-     - Builds Docker images
-     - Pushes to container registry
-     - Deploys to production
-
-  3. **Drift Detection Job**
-     - Runs daily
-     - Checks for data drift
-     - Triggers retraining if needed
-
-  4. **Fairness Testing Job**
-     - Runs daily
-     - Monitors model fairness
-     - Logs fairness metrics
-
-### 2. Model Promotion Workflow (`.github/workflows/model_promotion.yml`)
-- **Trigger Conditions**:
-  - PR review approval
-  - PR must have "model-promotion" label
-
-- **Jobs**:
-  1. **Promote Model Job**
-     - Starts MLflow server
-     - Promotes model to production
-     - Handles success/failure notifications
+  2. **Production Automation Job**
+     - Runs drift detection
+     - Retrains model if drift detected
+     - Runs batch prediction
+     - Promotes model if approved
+     - Restarts API container to load new model
 
 ## Model Lifecycle Management
 
@@ -51,7 +34,7 @@ The CI/CD pipeline consists of two main workflows:
 #### Drift Detection
 - **Automated Monitoring**:
   - Daily runs via GitHub Actions
-  - Configuration: `.github/workflows/ci.yml`
+  - Configuration: `.github/workflows/production_automation.yml`
   - Compares current vs. reference data
   - Uses `scripts/drift_detection.py` for detection
   - Uses `scripts/create_drift_reference.py` for reference data

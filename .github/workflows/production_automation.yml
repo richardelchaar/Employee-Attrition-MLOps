@@ -35,7 +35,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry install
-        
+    
+    - name: Set up environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
+    
     - name: Run tests
       run: |
         poetry run pytest tests/
@@ -47,63 +53,8 @@ jobs:
         poetry run flake8 .
         poetry run mypy .
 
-  run_production_automation:
-    # Only run model promotion on PR review approval
-    if: |
-      github.event_name == 'pull_request_review' && 
-      github.event.review.state == 'approved' && 
-      contains(github.event.pull_request.labels.*.name, 'model-promotion')
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-        
-    - name: Set up environment variables
-      run: |
-        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
-        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
-        
-    - name: Start MLflow server
-      run: |
-        poetry run mlflow server --host 127.0.0.1 --port 5001 &
-        sleep 5  # Wait for server to start
-        
-    - name: Run optimize_train_select
-      id: retrain
-      run: |
-        poetry run python scripts/optimize_train_select.py
-      env:
-        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
-        
-    - name: Create promotion comment
-      if: always()
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const message = context.job.status === 'success'
-            ? '✅ Model successfully trained and promoted to staging!'
-            : '❌ Model training and promotion failed. Please check the workflow logs.';
-          
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-            body: message
-          });
 
-  run_daily_automation:
+  run_production_automation:
     # Run on schedule, manual trigger, or push to main
     if: |
       github.event_name == 'schedule' || 
@@ -124,49 +75,46 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry install
-        
-    - name: Set up environment variables
+    
+    - name: Set up environment
       run: |
-        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
-        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
-        
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
+       
     - name: Start MLflow server
       run: |
         poetry run mlflow server --host 127.0.0.1 --port 5001 &
         sleep 5  # Wait for server to start
         
-    # Step 1: Run drift detection
+    # Step 1: Create drift reference
+    - name: Create drift reference
+      id: create_reference
+      run: |
+        poetry run python scripts/create_drift_reference.py
+    # Step 2: Run drift detection
     - name: Run drift detection
       id: drift
       continue-on-error: true
       run: |
         poetry run python -m employee_attrition_mlops.drift_detection
-      env:
-        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
-        
-    # Step 2: If drift detected, retrain model
+     
+    # Step 3: If drift detected, retrain model
     - name: Retrain model if drift detected
       if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
       id: retrain
       run: |
         echo "Drift detected. Starting retraining process..."
         poetry run python scripts/optimize_train_select.py
-      env:
-        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
-        
-    # Step 3: If no drift, run batch prediction
+      
+    # Step 4: If no drift, run batch prediction
     - name: Run batch prediction
       if: steps.drift.outcome == 'success'
       id: batch_predict
       run: |
         poetry run python scripts/batch_predict.py
-      env:
-        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
-        
-    # Step 4: Save and upload artifacts
+      
+    # Step 5: Save and upload artifacts
     - name: Download MLflow artifacts
       if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
       run: |
@@ -229,7 +177,7 @@ jobs:
           download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download drift reference
-          download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
           # Download final model pipeline
           download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
@@ -238,7 +186,7 @@ jobs:
           download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
         "
         
-    # Step 5: Create summary issue
+    # Step 6: Create summary issue
     - name: Create summary issue
       if: always()
       uses: actions/github-script@v6

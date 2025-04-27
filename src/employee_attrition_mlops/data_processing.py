@@ -453,7 +453,7 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
         return None
 
     connection_string = DATABASE_URL_PYMSSQL # Use the specific URL for pyodbc
-    logger.info(f"Attempting DB connection using pyodbc driver (URL from config).")
+    logger.info(f"Attempting to connect to database using pymssql driver (URL from config).")
 
     engine = None
     df = None
@@ -503,22 +503,22 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
             logger.info("Initial data cleaning finished.")
 
     except SQLAlchemyError as e:
-        logger.error(f"Database error during connection or query (pyodbc): {e}", exc_info=True)
+        logger.error(f"Database error during connection or query: {e}", exc_info=True)
         df = None
     except ImportError as e:
         logger.error(f"ImportError: pyodbc driver might not be installed: {e}")
         logger.error("Please ensure pyodbc is installed ('poetry install')")
         df = None
     except Exception as e:
-        logger.error(f"An unexpected error occurred during data loading/cleaning from DB (pyodbc): {e}", exc_info=True)
+        logger.error(f"An unexpected error occurred during data loading/cleaning from DB (pymssql): {e}", exc_info=True)
         df = None
     finally:
         if engine:
             engine.dispose()
-            logger.info("Database engine (pyodbc) disposed.")
+            logger.info("Database engine (pymssql) disposed.")
 
     if df is None:
-        logger.error("Failed to load data from the database using pyodbc.")
+        logger.error("Failed to load data from the database using pymssql.")
 
     return df
 

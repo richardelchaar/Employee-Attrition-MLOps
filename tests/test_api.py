@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from src.employee_attrition_mlops.api import app
+from employee_attrition_mlops.api import app
 import mlflow
 from unittest.mock import patch, MagicMock
 import json
@@ -9,7 +9,7 @@ client = TestClient(app=app)
 
 def test_health_endpoint_model_not_loaded():
     """Test health endpoint when model is not loaded."""
-    with patch('src.employee_attrition_mlops.api.model', None):
+    with patch('employee_attrition_mlops.api.model', None):
         response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
@@ -19,7 +19,7 @@ def test_health_endpoint_model_not_loaded():
 
 def test_health_endpoint_with_model():
     """Test the health check endpoint when model is loaded."""
-    with patch('src.employee_attrition_mlops.api.model', MagicMock()), \
+    with patch('employee_attrition_mlops.api.model', MagicMock()), \
          patch('mlflow.tracking.MlflowClient') as mock_client:
         # Mock MLflow client response
         mock_model = MagicMock()
@@ -73,7 +73,7 @@ def test_predict_endpoint_valid_input():
         "AgeGroup": "18-30"
     }
     
-    with patch('src.employee_attrition_mlops.api.model') as mock_model:
+    with patch('employee_attrition_mlops.api.model') as mock_model:
         mock_model.predict.return_value = [0]  # Mock prediction
         response = client.post("/predict", json=test_data)
         assert response.status_code == 200
@@ -85,7 +85,7 @@ def test_predict_endpoint_valid_input():
 def test_predict_endpoint_invalid_input():
     """Test prediction endpoint with invalid input data."""
     # First, we need to mock the model to be loaded
-    with patch('src.employee_attrition_mlops.api.model', MagicMock()):
+    with patch('employee_attrition_mlops.api.model', MagicMock()):
         # Test missing required fields
         test_data = {
             "EmployeeNumber": 12345,
@@ -106,7 +106,7 @@ def test_predict_endpoint_invalid_input():
 
 def test_predict_endpoint_model_not_loaded():
     """Test prediction endpoint when model is not loaded."""
-    with patch('src.employee_attrition_mlops.api.model', None):
+    with patch('employee_attrition_mlops.api.model', None):
         test_data = {
             "EmployeeNumber": 12345,
             "SnapshotDate": "2024-04-26"
@@ -117,7 +117,7 @@ def test_predict_endpoint_model_not_loaded():
 
 def test_model_info_endpoint_with_model():
     """Test the model info endpoint when model is loaded."""
-    with patch('src.employee_attrition_mlops.api.model', MagicMock()), \
+    with patch('employee_attrition_mlops.api.model', MagicMock()), \
          patch('mlflow.tracking.MlflowClient') as mock_client:
         # Mock MLflow client response
         mock_model = MagicMock()
@@ -140,7 +140,7 @@ def test_model_info_endpoint_with_model():
 
 def test_model_info_endpoint_no_model():
     """Test model info endpoint when model is not loaded."""
-    with patch('src.employee_attrition_mlops.api.model', None):
+    with patch('employee_attrition_mlops.api.model', None):
         response = client.get("/model-info")
         assert response.status_code == 503
         assert "Model not loaded yet" in response.json()["detail"]
@@ -192,8 +192,8 @@ def test_predict_endpoint_database_logging():
     mock_engine = MagicMock()
     mock_engine.begin.return_value = mock_conn
     
-    with patch('src.employee_attrition_mlops.api.model', MagicMock()) as mock_model, \
-         patch('src.employee_attrition_mlops.api.engine', mock_engine):
+    with patch('employee_attrition_mlops.api.model', MagicMock()) as mock_model, \
+         patch('employee_attrition_mlops.api.engine', mock_engine):
         mock_model.predict.return_value = [0]
         
         response = client.post("/predict", json=test_data)
