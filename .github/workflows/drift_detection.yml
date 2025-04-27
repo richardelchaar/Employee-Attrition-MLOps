@@ -1,0 +1,86 @@
+name: Drift Detection
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+  # Scheduled trigger (weekly on Monday at 00:00 UTC)
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  detect_drift:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry config virtualenvs.create false
+    
+    - name: Install dependencies
+      run: |
+        poetry install
+    
+    - name: Start MLflow server
+      run: |
+        poetry run mlflow server --host 127.0.0.1 --port 5001 &
+        sleep 5  # Wait for server to start
+    
+    - name: Run drift detection
+      id: drift
+      continue-on-error: true
+      run: |
+        poetry run python scripts/drift_detection.py
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+    
+    - name: Create issue if drift detected
+      if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const driftReport = JSON.parse(fs.readFileSync('reports/drift_report.html', 'utf8'));
+          
+          const issueBody = `## Data Drift Detected 🚨
+          
+          The drift detection workflow has detected significant drift in the data:
+          
+          - Number of drifted features: ${driftReport.n_drifted_features}
+          - Drift share: ${(driftReport.drift_share * 100).toFixed(2)}%
+          - Drifted features: ${driftReport.drifted_features.join(', ')}
+          
+          ### Next Steps
+          1. Review the drift report in MLflow
+          2. Investigate the cause of the drift
+          3. Consider retraining the model with new data
+          
+          [View MLflow Experiment](${process.env.MLFLOW_TRACKING_URI}/#/experiments/0)`;
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 Data Drift Detected - Action Required',
+            body: issueBody,
+            labels: ['data-drift', 'needs-attention']
+          });
+
+    - name: Handle errors
+      if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 2
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '⚠️ Drift Detection Error',
+            body: 'The drift detection workflow encountered an error. Please check the workflow logs.',
+            labels: ['error', 'needs-attention']
+          });

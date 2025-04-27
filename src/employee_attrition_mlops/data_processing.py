@@ -609,3 +609,19 @@ def find_skewed_columns(df: pd.DataFrame, num_cols: list, threshold: float = SKE
     except Exception as e:
         logger.error(f"Error calculating skewness: {e}", exc_info=True)
     return skewed_features
+
+
+def load_and_clean_data(path: str = None) -> pd.DataFrame:
+    """
+    Load and clean data from either a CSV file or database.
+    
+    Args:
+        path (str, optional): Path to CSV file. If None, loads from database.
+    
+    Returns:
+        pd.DataFrame: Cleaned data
+    """
+    if path is not None and path.endswith('.csv'):
+        return load_and_clean_data_from_csv(path)
+    else:
+        return load_and_clean_data_from_db()
