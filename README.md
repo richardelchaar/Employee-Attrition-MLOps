@@ -114,3 +114,46 @@ After model retraining/promotion:
 ## License
 
 [Your License Here]
+
+## Environment Setup
+
+### Required Environment Variables
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database Configuration
+DATABASE_URL_PYMSSQL=mssql+pymssql://username:password@hostname:1433/database
+
+# MLflow Configuration
+MLFLOW_TRACKING_URI=http://localhost:5000  # Default local MLflow server
+MLFLOW_MODEL_NAME=employee_attrition_model
+MLFLOW_MODEL_STAGE=Production
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+```
+
+Replace the placeholder values with your actual configuration:
+- `username`: Your database username
+- `password`: Your database password
+- `hostname`: Your database host
+- `database`: Your database name
+- `MLFLOW_TRACKING_URI`: Your MLflow server URL (default: http://localhost:5000)
+
+### Running the Application
+
+1. Start MLflow server (if not already running):
+```bash
+mlflow server --host 0.0.0.0 --port 5000
+```
+
+2. Start the FastAPI server:
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+3. Start the Streamlit app:
+```bash
+streamlit run src/frontend/app.py
+```
