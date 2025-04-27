@@ -21,9 +21,6 @@ try:
         TARGET_COLUMN,
         SNAPSHOT_DATE_COL,
         EMPLOYEE_ID_COL,
-        DB_BATCH_PREDICTION_TABLE,
-        DB_HISTORY_TABLE,
-        PRODUCTION_MODEL_NAME,
         DATABASE_URL_PYODBC,
         MLFLOW_TRACKING_URI
     )
@@ -122,8 +119,8 @@ def mock_transformers():
 def mock_env_vars():
     """Mock environment variables needed by batch_predict.py"""
     with mock.patch.dict('os.environ', {
-        'DATABASE_URL_PYODBC': 'mssql+pyodbc://username:password@server/database?driver=ODBC+Driver+17+for+SQL+Server',
-        'MLFLOW_TRACKING_URI': 'http://localhost:5000'
+        'DATABASE_URL_PYODBC': DATABASE_URL_PYODBC,
+        'MLFLOW_TRACKING_URI': MLFLOW_TRACKING_URI
     }):
         yield
 
