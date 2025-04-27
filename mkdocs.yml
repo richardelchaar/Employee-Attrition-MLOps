@@ -13,6 +13,8 @@ theme:
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
+  - API Documentation: api_documentation.md
   - Getting Started: getting_started.md
   - CI/CD & Automation: ci_cd_automation.md
   - Monitoring & Retraining: monitoring.md
