@@ -47,36 +47,6 @@ jobs:
         poetry run flake8 .
         poetry run mypy .
 
-  deploy:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-        
-    - name: Build and push Docker images
-      run: |
-        docker build -t your-registry/employee-attrition-api:latest -f Dockerfile .
-        docker build -t your-registry/employee-attrition-mlflow:latest -f Dockerfile.mlflow .
-        docker build -t your-registry/employee-attrition-frontend:latest -f Dockerfile.frontend .
-        
-        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-        
-        docker push your-registry/employee-attrition-api:latest
-        docker push your-registry/employee-attrition-mlflow:latest
-        docker push your-registry/employee-attrition-frontend:latest
-
   run_production_automation:
     # Only run model promotion on PR review approval
     if: |
@@ -202,7 +172,7 @@ jobs:
       run: |
         # Get the run ID
         RUN_ID=${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}
-
+        
         # Get the latest model version and experiment ID from MLflow
         MLFLOW_INFO=$(poetry run python -c "
           import mlflow
