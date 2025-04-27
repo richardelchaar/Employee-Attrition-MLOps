@@ -1,0 +1,356 @@
+name: Production Automation
+
+on:
+  # Scheduled runs
+  schedule:
+    - cron: '0 0 1 * *'  # Run at midnight on the first day of every month
+  # Manual trigger
+  workflow_dispatch:
+  # On push to main
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/production_automation.yml'
+  # On PR review approval
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install
+        
+    - name: Run tests
+      run: |
+        poetry run pytest tests/
+        
+    - name: Run linting
+      run: |
+        poetry run black . --check
+        poetry run isort . --check
+        poetry run flake8 .
+        poetry run mypy .
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install
+        
+    - name: Build and push Docker images
+      run: |
+        docker build -t your-registry/employee-attrition-api:latest -f Dockerfile .
+        docker build -t your-registry/employee-attrition-mlflow:latest -f Dockerfile.mlflow .
+        docker build -t your-registry/employee-attrition-frontend:latest -f Dockerfile.frontend .
+        
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        
+        docker push your-registry/employee-attrition-api:latest
+        docker push your-registry/employee-attrition-mlflow:latest
+        docker push your-registry/employee-attrition-frontend:latest
+
+  run_production_automation:
+    # Only run model promotion on PR review approval
+    if: |
+      github.event_name == 'pull_request_review' && 
+      github.event.review.state == 'approved' && 
+      contains(github.event.pull_request.labels.*.name, 'model-promotion')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install
+        
+    - name: Set up environment variables
+      run: |
+        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
+        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
+        
+    - name: Start MLflow server
+      run: |
+        poetry run mlflow server --host 127.0.0.1 --port 5001 &
+        sleep 5  # Wait for server to start
+        
+    - name: Run optimize_train_select
+      id: retrain
+      run: |
+        poetry run python scripts/optimize_train_select.py
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        
+    - name: Create promotion comment
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const message = context.job.status === 'success'
+            ? '✅ Model successfully trained and promoted to staging!'
+            : '❌ Model training and promotion failed. Please check the workflow logs.';
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: message
+          });
+
+  run_daily_automation:
+    # Run on schedule, manual trigger, or push to main
+    if: |
+      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install
+        
+    - name: Set up environment variables
+      run: |
+        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
+        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
+        
+    - name: Start MLflow server
+      run: |
+        poetry run mlflow server --host 127.0.0.1 --port 5001 &
+        sleep 5  # Wait for server to start
+        
+    # Step 1: Run drift detection
+    - name: Run drift detection
+      id: drift
+      continue-on-error: true
+      run: |
+        poetry run python -m employee_attrition_mlops.drift_detection
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        
+    # Step 2: If drift detected, retrain model
+    - name: Retrain model if drift detected
+      if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
+      id: retrain
+      run: |
+        echo "Drift detected. Starting retraining process..."
+        poetry run python scripts/optimize_train_select.py
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        
+    # Step 3: If no drift, run batch prediction
+    - name: Run batch prediction
+      if: steps.drift.outcome == 'success'
+      id: batch_predict
+      run: |
+        poetry run python scripts/batch_predict.py
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        
+    # Step 4: Save and upload artifacts
+    - name: Save MLflow artifacts
+      if: always()
+      run: |
+        # Get the run ID and model version
+        RUN_ID=${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}
+        
+        # Get the latest model version and experiment ID from MLflow
+        MLFLOW_INFO=$(poetry run python -c "
+          import mlflow
+          client = mlflow.tracking.MlflowClient()
+          versions = client.get_latest_versions('AttritionProductionModel', stages=['Staging'])
+          if versions:
+              print(f'{versions[0].version},{versions[0].run_id}')
+          else:
+              print('1,')
+        ")
+        
+        MODEL_VERSION=$(echo $MLFLOW_INFO | cut -d',' -f1)
+        EXPERIMENT_ID=$(poetry run python -c "
+          import mlflow
+          client = mlflow.tracking.MlflowClient()
+          run = client.get_run('$RUN_ID')
+          print(run.info.experiment_id)
+        ")
+        
+        # Create version directory for meta.yaml
+        mkdir -p mlruns/models/AttritionProductionModel/version-$MODEL_VERSION
+        
+        # Create meta.yaml in the correct location with MLflow's format
+        cat > mlruns/models/AttritionProductionModel/version-$MODEL_VERSION/meta.yaml << EOL
+aliases: []
+creation_timestamp: $(date +%s%3N)
+current_stage: Staging
+description: 'Model trained with optimize_train_select.py'
+last_updated_timestamp: $(date +%s%3N)
+name: AttritionProductionModel
+run_id: $RUN_ID
+run_link: ''
+source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+status: READY
+status_message: null
+storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+user_id: null
+version: $MODEL_VERSION
+EOL
+        
+        # Download MLflow artifacts using the utility function
+        poetry run python -c "
+import sys
+sys.path.append('.')
+from src.employee_attrition_mlops.utils import download_mlflow_artifact
+
+# Download evaluation reports
+download_mlflow_artifact('$RUN_ID', 'evaluation_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+
+# Download explainability reports
+download_mlflow_artifact('$RUN_ID', 'explainability_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+
+# Download data baselines
+download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+
+# Download drift reference
+download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+
+# Download final model pipeline
+download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+
+# Download best Optuna trial parameters
+download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')        
+        
+        
+    # Step 5: Create summary issue
+    - name: Create summary issue
+      if: always()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          let summary = '## Production Automation Summary\n\n';
+          
+          // Add drift detection results if available
+          if (fs.existsSync('reports/drift_report.json')) {
+            const driftReport = JSON.parse(fs.readFileSync('reports/drift_report.json', 'utf8'));
+            summary += `### Drift Detection Results\n`;
+            summary += `- Drift detected: ${driftReport.dataset_drift}\n`;
+            summary += `- Drift share: ${(driftReport.drift_share * 100).toFixed(2)}%\n`;
+            summary += `- Number of drifted features: ${driftReport.n_drifted_features}\n\n`;
+          }
+          
+          // Add retraining results if available
+          if (fs.existsSync('reports/retraining_summary.json')) {
+            const retrainSummary = JSON.parse(fs.readFileSync('reports/retraining_summary.json', 'utf8'));
+            summary += `### Retraining Results\n`;
+            summary += `- Was retrained: ${retrainSummary.was_retrained}\n`;
+            summary += `- New model performance: ${retrainSummary.new_model_performance}\n`;
+            summary += `- Performance improvement: ${retrainSummary.performance_improvement}\n\n`;
+          }
+          
+          // Add optimization results if available
+          if (fs.existsSync('reports/optimization_summary.json')) {
+            const optSummary = JSON.parse(fs.readFileSync('reports/optimization_summary.json', 'utf8'));
+            summary += `### Model Optimization Results\n`;
+            summary += `- Selected model type: ${optSummary.selected_model_type}\n`;
+            summary += `- Best hyperparameters: ${JSON.stringify(optSummary.best_hyperparameters)}\n`;
+            summary += `- Cross-validation score: ${optSummary.cv_score}\n\n`;
+          }
+          
+          // Add batch prediction results if available
+          if (fs.existsSync('reports/batch_prediction_summary.json')) {
+            const predSummary = JSON.parse(fs.readFileSync('reports/batch_prediction_summary.json', 'utf8'));
+            summary += `### Batch Prediction Results\n`;
+            summary += `- Number of predictions: ${predSummary.num_predictions}\n`;
+            summary += `- Attrition rate: ${(predSummary.attrition_rate * 100).toFixed(2)}%\n\n`;
+          }
+          
+          // Add metrics results if available
+          if (fs.existsSync('reports/metrics_summary.json')) {
+            const metricsSummary = JSON.parse(fs.readFileSync('reports/metrics_summary.json', 'utf8'));
+            summary += `### Model Metrics\n`;
+            summary += `- Accuracy: ${(metricsSummary.accuracy * 100).toFixed(2)}%\n`;
+            summary += `- Precision: ${(metricsSummary.precision * 100).toFixed(2)}%\n`;
+            summary += `- Recall: ${(metricsSummary.recall * 100).toFixed(2)}%\n`;
+            summary += `- F1 Score: ${(metricsSummary.f1_score * 100).toFixed(2)}%\n\n`;
+          }
+          
+          // Add fairness results if available
+          if (fs.existsSync('reports/fairness_summary.json')) {
+            const fairnessSummary = JSON.parse(fs.readFileSync('reports/fairness_summary.json', 'utf8'));
+            summary += `### Fairness Metrics\n`;
+            for (const [feature, metrics] of Object.entries(fairnessSummary)) {
+              summary += `#### ${feature}\n`;
+              summary += `- Demographic Parity Difference: ${metrics.demographic_parity_difference.toFixed(4)}\n`;
+              summary += `- Equalized Odds Difference: ${metrics.equalized_odds_difference.toFixed(4)}\n\n`;
+            }
+          }
+          
+          // Add error information if available
+          if (fs.existsSync('reports/automation_error.json')) {
+            const errorSummary = JSON.parse(fs.readFileSync('reports/automation_error.json', 'utf8'));
+            summary += `### Error Information\n`;
+            summary += `- Error type: ${errorSummary.error_type}\n`;
+            summary += `- Error message: ${errorSummary.error}\n\n`;
+          }
+          
+          // Add MLflow run information
+          summary += `### MLflow Run Information\n`;
+          summary += `- Run ID: ${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}\n`;
+          summary += `- MLflow UI: ${{ secrets.MLFLOW_TRACKING_URI }}/#/experiments/0/runs/${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}\n\n`;
+          
+          // Create issue with summary
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Production Automation ${context.job.status === 'success' ? '✅' : '❌'} - ${new Date().toISOString().split('T')[0]}`,
+            body: summary,
+            labels: context.job.status === 'success' ? ['automation-success'] : ['automation-failed']
+          }); 
