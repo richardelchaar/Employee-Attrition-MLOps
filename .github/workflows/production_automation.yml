@@ -135,7 +135,16 @@ jobs:
         poetry run mlflow server --host 127.0.0.1 --port 5001 &
         sleep 5  # Wait for server to start
         
-    # Step 1: Run drift detection
+    # Step 1: Create drift reference
+    - name: Create drift reference
+      id: create_reference
+      run: |
+        poetry run python -m employee_attrition_mlops.create_drift_reference
+      env:
+        MLFLOW_TRACKING_URI: http://127.0.0.1:5001
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        
+    # Step 2: Run drift detection
     - name: Run drift detection
       id: drift
       continue-on-error: true
@@ -145,7 +154,7 @@ jobs:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
         DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
         
-    # Step 2: If drift detected, retrain model
+    # Step 3: If drift detected, retrain model
     - name: Retrain model if drift detected
       if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
       id: retrain
@@ -156,7 +165,7 @@ jobs:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
         DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
         
-    # Step 3: If no drift, run batch prediction
+    # Step 4: If no drift, run batch prediction
     - name: Run batch prediction
       if: steps.drift.outcome == 'success'
       id: batch_predict
@@ -166,7 +175,7 @@ jobs:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
         DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
         
-    # Step 4: Save and upload artifacts
+    # Step 5: Save and upload artifacts
     - name: Download MLflow artifacts
       if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
       run: |
@@ -238,7 +247,7 @@ jobs:
           download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
         "
         
-    # Step 5: Create summary issue
+    # Step 6: Create summary issue
     - name: Create summary issue
       if: always()
       uses: actions/github-script@v6
