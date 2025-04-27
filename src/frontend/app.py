@@ -9,16 +9,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
+from sqlalchemy import create_engine, text
+import mlflow
+from employee_attrition_mlops.config import (
+    DATABASE_URL_PYMSSQL, MLFLOW_TRACKING_URI, PRODUCTION_MODEL_NAME,
+    DB_BATCH_PREDICTION_TABLE, DB_HISTORY_TABLE, EMPLOYEE_ID_COL, SNAPSHOT_DATE_COL
+)
+
+# Configure page
+st.set_page_config(
+    page_title="Employee Attrition Prediction",
+    page_icon="👥",
+    layout="wide"
+)
 
 # Title of the app
 st.title("Employee Attrition Prediction")
 
 # Sidebar navigation
-tabs = ["Live Prediction", "Model Info"]
+tabs = ["Live Prediction", "Workforce Overview", "Monitoring", "Model Info"]
 
 with st.sidebar:
     selected_tab = option_menu(None, tabs, 
-        icons=['lightbulb', 'info-circle'], default_index=0)
+        icons=['lightbulb', 'people', 'graph-up', 'info-circle'], default_index=0)
    
 # Live Prediction tab
 if selected_tab == "Live Prediction":
@@ -170,6 +183,188 @@ if selected_tab == "Live Prediction":
                 st.write(f"#### {prediction}")
             else:
                 st.error("Error making prediction. Please try again later.")
+
+# Workforce Overview tab
+elif selected_tab == "Workforce Overview":
+    st.header("Workforce Overview")
+    
+    # Initialize database connection
+    if not DATABASE_URL_PYMSSQL:
+        st.error("Database connection not configured. Please set DATABASE_URL_PYMSSQL in your .env file.")
+    else:
+        try:
+            engine = create_engine(DATABASE_URL_PYMSSQL)
+            
+            # Fetch latest snapshot date
+            with engine.connect() as conn:
+                max_date_res = conn.execute(text(f"SELECT MAX({SNAPSHOT_DATE_COL}) as max_date FROM {DB_HISTORY_TABLE}"))
+                max_date = max_date_res.scalar()
+            
+            if not max_date:
+                st.warning("No data found in the database.")
+            else:
+                # Fetch batch prediction results
+                query = text(f"""
+                    SELECT h.*, b.Prediction
+                    FROM {DB_HISTORY_TABLE} h
+                    LEFT JOIN {DB_BATCH_PREDICTION_TABLE} b
+                    ON h.{EMPLOYEE_ID_COL} = b.{EMPLOYEE_ID_COL}
+                    AND h.{SNAPSHOT_DATE_COL} = b.{SNAPSHOT_DATE_COL}
+                    WHERE h.{SNAPSHOT_DATE_COL} = :snap
+                """)
+                df = pd.read_sql(query, engine, params={'snap': max_date})
+                
+                if df.empty:
+                    st.warning("No prediction results found for the latest snapshot.")
+                else:
+                    # Filters
+                    st.subheader("Filters")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        department_filter = st.multiselect("Department", df['Department'].unique())
+                    with col2:
+                        job_role_filter = st.multiselect("Job Role", df['JobRole'].unique())
+                    with col3:
+                        prediction_filter = st.multiselect("Prediction", ['Stay', 'Leave'])
+                    
+                    # Apply filters
+                    if department_filter:
+                        df = df[df['Department'].isin(department_filter)]
+                    if job_role_filter:
+                        df = df[df['JobRole'].isin(job_role_filter)]
+                    if prediction_filter:
+                        df = df[df['Prediction'].isin(prediction_filter)]
+                    
+                    # Display metrics
+                    st.subheader("Key Metrics")
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Employees", len(df))
+                    with col2:
+                        attrition_rate = (df['Prediction'] == 'Leave').mean()
+                        st.metric("Attrition Rate", f"{attrition_rate:.1%}" if isinstance(attrition_rate, (int, float)) else "N/A")
+                    with col3:
+                        avg_age = df['Age'].mean()
+                        st.metric("Average Age", f"{avg_age:.1f}" if isinstance(avg_age, (int, float)) else "N/A")
+                    with col4:
+                        avg_tenure = df['YearsAtCompany'].mean()
+                        st.metric("Average Tenure", f"{avg_tenure:.1f}" if isinstance(avg_tenure, (int, float)) else "N/A")
+                    
+                    # Visualizations
+                    st.subheader("Workforce Distribution")
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Department distribution
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        df['Department'].value_counts().plot(kind='bar', ax=ax)
+                        plt.title('Employees by Department')
+                        plt.xticks(rotation=45)
+                        st.pyplot(fig)
+                        plt.close()
+                    
+                    with col2:
+                        # Job Role distribution
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        df['JobRole'].value_counts().plot(kind='bar', ax=ax)
+                        plt.title('Employees by Job Role')
+                        plt.xticks(rotation=45)
+                        st.pyplot(fig)
+                        plt.close()
+                    
+                    # Data table
+                    st.subheader("Employee Data")
+                    st.dataframe(df)
+        
+        except Exception as e:
+            st.error(f"Error connecting to database: {str(e)}")
+            st.info("Please ensure your database is running and accessible.")
+
+# Monitoring tab
+elif selected_tab == "Monitoring":
+    st.header("Model Monitoring")
+    
+    # Set MLflow tracking URI
+    if not MLFLOW_TRACKING_URI:
+        st.error("MLflow tracking URI not configured. Please set MLFLOW_TRACKING_URI in your .env file.")
+    else:
+        try:
+            mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+            client = mlflow.tracking.MlflowClient()
+            
+            # Get current model info
+            registered_model = client.get_registered_model(PRODUCTION_MODEL_NAME)
+            latest_version = max(registered_model.latest_versions, key=lambda v: int(v.version))
+            
+            # Display model info
+            st.subheader("Current Model")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Version", latest_version.version)
+                st.metric("Status", latest_version.status)
+            with col2:
+                st.metric("Last Updated", datetime.fromtimestamp(latest_version.last_updated_timestamp/1000).strftime('%Y-%m-%d %H:%M:%S'))
+                st.metric("Stage", latest_version.current_stage)
+            
+            # Check for drift reports
+            st.subheader("Drift Detection")
+            try:
+                # Load latest drift report
+                drift_report_path = os.path.join("reports", "drift_report.json")
+                if os.path.exists(drift_report_path):
+                    with open(drift_report_path, 'r') as f:
+                        drift_report = json.load(f)
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Drift Detected", "Yes" if drift_report['dataset_drift'] else "No")
+                    with col2:
+                        drift_share = drift_report['drift_share']
+                        st.metric("Drift Share", f"{drift_share:.1%}" if isinstance(drift_share, (int, float)) else str(drift_share))
+                    with col3:
+                        st.metric("Drifted Features", drift_report['n_drifted_features'])
+                    
+                    # Display drifted features
+                    if drift_report['drifted_features']:
+                        st.write("Drifted Features:")
+                        for feature in drift_report['drifted_features']:
+                            st.write(f"- {feature}")
+                    
+                    # Link to MLflow
+                    st.write("View detailed drift report in MLflow:")
+                    st.markdown(f"[Open MLflow UI]({MLFLOW_TRACKING_URI})")
+                else:
+                    st.warning("No drift report found. Run drift detection to generate a report.")
+            except Exception as e:
+                st.error(f"Error loading drift report: {str(e)}")
+            
+            # Model performance metrics
+            st.subheader("Model Performance")
+            try:
+                # Load model performance metrics from MLflow
+                run = client.get_run(latest_version.run_id)
+                metrics = run.data.metrics
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    accuracy = metrics.get('accuracy', 'N/A')
+                    st.metric("Accuracy", f"{accuracy:.3f}" if isinstance(accuracy, (int, float)) else accuracy)
+                with col2:
+                    f1 = metrics.get('f1', 'N/A')
+                    st.metric("F1 Score", f"{f1:.3f}" if isinstance(f1, (int, float)) else f1)
+                with col3:
+                    auc = metrics.get('auc', 'N/A')
+                    st.metric("AUC-ROC", f"{auc:.3f}" if isinstance(auc, (int, float)) else auc)
+                
+                # Link to MLflow for detailed metrics
+                st.write("View detailed metrics in MLflow:")
+                st.markdown(f"[Open MLflow UI]({MLFLOW_TRACKING_URI})")
+            except Exception as e:
+                st.error(f"Error loading model metrics: {str(e)}")
+        
+        except Exception as e:
+            st.error(f"Error connecting to MLflow: {str(e)}")
+            st.info("Please ensure MLflow server is running and accessible.")
 
 # Model Info tab
 elif selected_tab == "Model Info":
