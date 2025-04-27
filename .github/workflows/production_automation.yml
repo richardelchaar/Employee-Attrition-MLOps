@@ -197,12 +197,12 @@ jobs:
         DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
         
     # Step 4: Save and upload artifacts
-    - name: Save MLflow artifacts
-      if: always()
+    - name: Download MLflow artifacts
+      if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
       run: |
-        # Get the run ID and model version
+        # Get the run ID
         RUN_ID=${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}
-        
+
         # Get the latest model version and experiment ID from MLflow
         MLFLOW_INFO=$(poetry run python -c "
           import mlflow
@@ -227,46 +227,46 @@ jobs:
         
         # Create meta.yaml in the correct location with MLflow's format
         cat > mlruns/models/AttritionProductionModel/version-$MODEL_VERSION/meta.yaml << EOL
-aliases: []
-creation_timestamp: $(date +%s%3N)
-current_stage: Staging
-description: 'Model trained with optimize_train_select.py'
-last_updated_timestamp: $(date +%s%3N)
-name: AttritionProductionModel
-run_id: $RUN_ID
-run_link: ''
-source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
-status: READY
-status_message: null
-storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
-user_id: null
-version: $MODEL_VERSION
-EOL
+        aliases: []
+        creation_timestamp: $(date +%s%3N)
+        current_stage: Staging
+        description: 'Model trained with optimize_train_select.py'
+        last_updated_timestamp: $(date +%s%3N)
+        name: AttritionProductionModel
+        run_id: $RUN_ID
+        run_link: ''
+        source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+        status: READY
+        status_message: null
+        storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+        user_id: null
+        version: $MODEL_VERSION
+        EOL
         
         # Download MLflow artifacts using the utility function
         poetry run python -c "
-import sys
-sys.path.append('.')
-from src.employee_attrition_mlops.utils import download_mlflow_artifact
+          import sys
+          sys.path.append('.')
+          from src.employee_attrition_mlops.utils import download_mlflow_artifact
 
-# Download evaluation reports
-download_mlflow_artifact('$RUN_ID', 'evaluation_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # Download evaluation reports
+          download_mlflow_artifact('$RUN_ID', 'evaluation_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
-# Download explainability reports
-download_mlflow_artifact('$RUN_ID', 'explainability_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # Download explainability reports
+          download_mlflow_artifact('$RUN_ID', 'explainability_reports', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
-# Download data baselines
-download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # Download data baselines
+          download_mlflow_artifact('$RUN_ID', 'data_baselines', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
-# Download drift reference
-download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # Download drift reference
+          download_mlflow_artifact('$RUN_ID', 'drift_reference', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
-# Download final model pipeline
-download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+          # Download final model pipeline
+          download_mlflow_artifact('$RUN_ID', 'final_model_pipeline', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
 
-# Download best Optuna trial parameters
-download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')        
-        
+          # Download best Optuna trial parameters
+          download_mlflow_artifact('$RUN_ID', 'best_optuna_trial_params.json', 'mlartifacts/$EXPERIMENT_ID/$RUN_ID')
+        "
         
     # Step 5: Create summary issue
     - name: Create summary issue
