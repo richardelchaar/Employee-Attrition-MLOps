@@ -69,11 +69,6 @@ jobs:
         pip install poetry
         poetry install
         
-    - name: Set up environment variables
-      run: |
-        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
-        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
-        
     - name: Start MLflow server
       run: |
         poetry run mlflow server --host 127.0.0.1 --port 5001 &
@@ -85,7 +80,7 @@ jobs:
         poetry run python scripts/optimize_train_select.py
       env:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
         
     - name: Create promotion comment
       if: always()
@@ -125,11 +120,6 @@ jobs:
         pip install poetry
         poetry install
         
-    - name: Set up environment variables
-      run: |
-        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> .env
-        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> .env
-        
     - name: Start MLflow server
       run: |
         poetry run mlflow server --host 127.0.0.1 --port 5001 &
@@ -142,7 +132,7 @@ jobs:
         poetry run python scripts/create_drift_reference.py
       env:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
         
     # Step 2: Run drift detection
     - name: Run drift detection
@@ -152,7 +142,7 @@ jobs:
         poetry run python -m employee_attrition_mlops.drift_detection
       env:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
         
     # Step 3: If drift detected, retrain model
     - name: Retrain model if drift detected
@@ -163,7 +153,7 @@ jobs:
         poetry run python scripts/optimize_train_select.py
       env:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
         
     # Step 4: If no drift, run batch prediction
     - name: Run batch prediction
@@ -173,7 +163,7 @@ jobs:
         poetry run python scripts/batch_predict.py
       env:
         MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
         
     # Step 5: Save and upload artifacts
     - name: Download MLflow artifacts
