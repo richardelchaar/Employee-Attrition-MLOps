@@ -22,7 +22,7 @@ if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
 from employee_attrition_mlops.config import (
-    DATABASE_URL_PYODBC as DATABASE_URL,
+    DATABASE_URL_PYMSSQL as DATABASE_URL,
     MLFLOW_TRACKING_URI,
     PRODUCTION_MODEL_NAME,
     DB_HISTORY_TABLE,
@@ -54,7 +54,7 @@ def main():
 
     # Initialize DB engine using the imported PYODBC URL
     if not DATABASE_URL:
-         logger.error("DATABASE_URL_PYODBC is not configured. Cannot run batch predictions.")
+         logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot run batch predictions.")
          sys.exit(1)
     logger.info("Connecting to database using pyodbc driver (URL from config).")
     engine = create_engine(DATABASE_URL)
