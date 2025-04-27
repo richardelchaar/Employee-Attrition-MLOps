@@ -227,21 +227,21 @@ jobs:
         
         # Create meta.yaml in the correct location with MLflow's format
         cat > mlruns/models/AttritionProductionModel/version-$MODEL_VERSION/meta.yaml << EOL
-aliases: []
-creation_timestamp: $(date +%s%3N)
-current_stage: Staging
-description: 'Model trained with optimize_train_select.py'
-last_updated_timestamp: $(date +%s%3N)
-name: AttritionProductionModel
-run_id: $RUN_ID
-run_link: ''
-source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
-status: READY
-status_message: null
-storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
-user_id: null
-version: $MODEL_VERSION
-EOL
+        aliases: []
+        creation_timestamp: $(date +%s%3N)
+        current_stage: Staging
+        description: 'Model trained with optimize_train_select.py'
+        last_updated_timestamp: $(date +%s%3N)
+        name: AttritionProductionModel
+        run_id: $RUN_ID
+        run_link: ''
+        source: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+        status: READY
+        status_message: null
+        storage_location: mlflow-artifacts:/$EXPERIMENT_ID/$RUN_ID/artifacts/final_model_pipeline
+        user_id: null
+        version: $MODEL_VERSION
+        EOL
         
         # Download MLflow artifacts using the utility function
         poetry run python -c "
