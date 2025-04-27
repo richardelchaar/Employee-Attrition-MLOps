@@ -22,9 +22,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-      DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
     steps:
     - uses: actions/checkout@v3
     
@@ -38,6 +35,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry install
+    
+    - name: Set up environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+        
         
     - name: Run tests
       run: |
@@ -57,10 +60,7 @@ jobs:
       github.event.review.state == 'approved' && 
       contains(github.event.pull_request.labels.*.name, 'model-promotion')
     runs-on: ubuntu-latest
-    env:
-      MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-      DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
-    
+  
     steps:
     - uses: actions/checkout@v3
     
@@ -74,6 +74,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry install
+    
+    - name: Set up environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
         
     - name: Start MLflow server
       run: |
@@ -84,7 +89,7 @@ jobs:
       id: retrain
       run: |
         poetry run python scripts/optimize_train_select.py
-
+    
     - name: Create promotion comment
       if: always()
       uses: actions/github-script@v6
@@ -107,10 +112,7 @@ jobs:
       github.event_name == 'schedule' || 
       github.event_name == 'workflow_dispatch' || 
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    runs-on: ubuntu-
-    env:
-      MLFLOW_TRACKING_URI: http://127.0.0.1:5001
-      DATABASE_URL_PYMSSQL: mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v3
@@ -125,6 +127,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install poetry
         poetry install
+    
+    - name: Set up environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
         
     - name: Start MLflow server
       run: |
@@ -136,14 +143,13 @@ jobs:
       id: create_reference
       run: |
         poetry run python scripts/create_drift_reference.py
-
     # Step 2: Run drift detection
     - name: Run drift detection
       id: drift
       continue-on-error: true
       run: |
         poetry run python -m employee_attrition_mlops.drift_detection
-    
+     
     # Step 3: If drift detected, retrain model
     - name: Retrain model if drift detected
       if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
@@ -151,7 +157,7 @@ jobs:
       run: |
         echo "Drift detected. Starting retraining process..."
         poetry run python scripts/optimize_train_select.py
-     
+      
     # Step 4: If no drift, run batch prediction
     - name: Run batch prediction
       if: steps.drift.outcome == 'success'
