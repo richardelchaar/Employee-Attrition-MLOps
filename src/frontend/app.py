@@ -480,11 +480,12 @@ elif selected_tab == "Model Info":
                 st.pyplot(fig)
                 plt.close()
                 
-                # Display gender-based differences
-                st.write("##### Gender-based Differences")
-                diff_data = gender_data['difference_overall']
-                diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
-                st.dataframe(diff_df)
+                if 'AgeGroup' not in fairness_report:
+                    # Display gender-based differences
+                    st.write("##### Gender-based Differences")
+                    diff_data = gender_data['difference_overall']
+                    diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
+                    st.dataframe(diff_df)
             
             # Age Group-based metrics
             if 'AgeGroup' in fairness_report:
@@ -516,11 +517,25 @@ elif selected_tab == "Model Info":
                 st.pyplot(fig)
                 plt.close()
                 
-                # Display age group-based differences
-                st.write("##### Age Group-based Differences")
-                diff_data = age_data['difference_overall']
-                diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
-                st.dataframe(diff_df)
+                if 'Gender' not in fairness_report:
+                    # Display age group-based differences
+                    st.write("##### Age Group-based Differences")
+                    diff_data = age_data['difference_overall']
+                    diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
+                    st.dataframe(diff_df)
+            
+            if ('AgeGroup' in fairness_report) and ('Gender' in fairness_report):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("##### Gender-based Differences")
+                    diff_data = gender_data['difference_overall']
+                    diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
+                    st.dataframe(diff_df)
+                with col2:
+                    st.write("##### Age Group-based Differences")
+                    diff_data = age_data['difference_overall']
+                    diff_df = pd.DataFrame.from_dict(diff_data, orient='index', columns=['Difference'])
+                    st.dataframe(diff_df)
             
     except FileNotFoundError:
         st.warning("Fairness report not found for this model version.")
