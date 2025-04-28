@@ -30,6 +30,13 @@ import shap
 from fairlearn.metrics import MetricFrame, count, selection_rate
 from fairlearn.metrics import demographic_parity_difference, equalized_odds_difference
 
+# --- Add src directory to Python path ---
+SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
+if SRC_PATH not in sys.path:
+    sys.path.append(SRC_PATH)
+logger = logging.getLogger(__name__) # Define logger early
+logger.info(f"Adding '{SRC_PATH}' to sys.path")
+
 # --- Data Profiling ---
 from sklearn.metrics import RocCurveDisplay
 try:
@@ -39,13 +46,6 @@ except ImportError:
     # Update warning message
     logger.warning("ydata-profiling not found. Skipping data profile generation.")
     ProfileReport = None # Define as None if not available
-
-# --- Add src directory to Python path ---
-SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src'))
-if SRC_PATH not in sys.path:
-    sys.path.append(SRC_PATH)
-logger = logging.getLogger(__name__) # Define logger early
-logger.info(f"Adding '{SRC_PATH}' to sys.path")
 
 # --- Import from local modules ---
 try:
@@ -57,6 +57,7 @@ try:
         MODELS_TO_OPTIMIZE,
         REPORTS_PATH, SKEWNESS_THRESHOLD,
         DATABASE_URL_PYODBC,
+        DATABASE_URL_PYMSSQL,
         DB_HISTORY_TABLE,
         SENSITIVE_FEATURES, # Import sensitive features list
         FEATURE_IMPORTANCE_PLOT_FILENAME, # Import filenames for artifacts
@@ -370,8 +371,8 @@ def optimize_select_and_train(models_to_opt: list):
         X_train, X_test, y_train, y_test = None, None, None, None # Initialize
         try:
             logger.info("Loading data from database...")
-            if not DATABASE_URL_PYODBC:
-                 logger.error("FATAL: DATABASE_URL_PYODBC environment variable not set.")
+            if not DATABASE_URL_PYMSSQL:
+                 logger.error("FATAL: DATABASE_URL_PYMSSQL environment variable not set.")
                  mlflow.set_tag("status", "FAILED_DB_CONFIG")
                  mlflow.end_run("FAILED")
                  sys.exit(1)

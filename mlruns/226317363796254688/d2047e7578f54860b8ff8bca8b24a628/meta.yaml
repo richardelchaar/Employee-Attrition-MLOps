@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/226317363796254688/d2047e7578f54860b8ff8bca8b24a628/artifacts
+end_time: 1745850871423
+entry_point_name: ''
+experiment_id: '226317363796254688'
+lifecycle_stage: active
+run_id: d2047e7578f54860b8ff8bca8b24a628
+run_name: DB_MultiModel_Optimize_Train_Evaluate
+run_uuid: d2047e7578f54860b8ff8bca8b24a628
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745850578922
+status: 3
+tags: []
+user_id: Arial

@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/226317363796254688/5df06457a50a46d395304a12ed6c7241/artifacts
+end_time: 1745850612819
+entry_point_name: ''
+experiment_id: '226317363796254688'
+lifecycle_stage: active
+run_id: 5df06457a50a46d395304a12ed6c7241
+run_name: Trial_3_logistic_regression
+run_uuid: 5df06457a50a46d395304a12ed6c7241
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745850606579
+status: 3
+tags: []
+user_id: Arial
