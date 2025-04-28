@@ -26,7 +26,7 @@ BASELINE_PROFILE_FILENAME = "training_data_profile.html" # Example, adjust if us
 CONFUSION_MATRIX_PLOT_FILENAME = "confusion_matrix.png" # Example plot name
 ROC_CURVE_PLOT_FILENAME = "roc_curve.png" # Example plot name
 FEATURE_IMPORTANCE_PLOT_FILENAME = "feature_importance.png" # Example plot name
-DRIFT_REPORT_FILENAME = "drift_report.html" # Example drift report name (Evidently often uses HTML)
+DRIFT_REPORT_FILENAME = "drift_report.json" # Example drift report name (Evidently often uses HTML)
 TEST_METRICS_FILENAME = "test_metrics_summary.json" # For saving test metrics
 
 # --- Database Configuration ---

@@ -226,6 +226,7 @@ elif selected_tab == "Workforce Overview":
                         job_role_filter = st.multiselect("Job Role", df['JobRole'].unique())
                     with col3:
                         prediction_filter = st.multiselect("Prediction", ['Stay', 'Leave'])
+                        prediction_filter = ["1" if x == 'Leave' else "0" for x in prediction_filter]
                     
                     # Apply filters
                     if department_filter:
@@ -241,8 +242,8 @@ elif selected_tab == "Workforce Overview":
                     with col1:
                         st.metric("Total Employees", len(df))
                     with col2:
-                        attrition_rate = (df['Prediction'] == 'Leave').mean()
-                        st.metric("Attrition Rate", f"{attrition_rate:.1%}" if isinstance(attrition_rate, (int, float)) else "N/A")
+                        attrition_rate = len(df[df['Prediction'] == "1"]) / len(df)
+                        st.metric("Attrition Rate", f"{attrition_rate:.1%}")
                     with col3:
                         avg_age = df['Age'].mean()
                         st.metric("Average Age", f"{avg_age:.1f}" if isinstance(avg_age, (int, float)) else "N/A")
@@ -283,88 +284,34 @@ elif selected_tab == "Workforce Overview":
 # Monitoring tab
 elif selected_tab == "Monitoring":
     st.header("Model Monitoring")
-    
-    # Set MLflow tracking URI
-    if not MLFLOW_TRACKING_URI:
-        st.error("MLflow tracking URI not configured. Please set MLFLOW_TRACKING_URI in your .env file.")
-    else:
-        try:
-            mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-            client = mlflow.tracking.MlflowClient()
+
+    # Check for drift reports
+    st.subheader("Drift Detection")
+    try:
+        # Load latest drift report
+        drift_report_path = os.path.join("reports", "drift_report.json")
+        if os.path.exists(drift_report_path):
+            with open(drift_report_path, 'r') as f:
+                drift_report = json.load(f)
             
-            # Get current model info
-            registered_model = client.get_registered_model(PRODUCTION_MODEL_NAME)
-            latest_version = max(registered_model.latest_versions, key=lambda v: int(v.version))
-            
-            # Display model info
-            st.subheader("Current Model")
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Version", latest_version.version)
-                st.metric("Status", latest_version.status)
+                st.metric("Drift Detected", "Yes" if drift_report['dataset_drift'] else "No")
             with col2:
-                st.metric("Last Updated", datetime.fromtimestamp(latest_version.last_updated_timestamp/1000).strftime('%Y-%m-%d %H:%M:%S'))
-                st.metric("Stage", latest_version.current_stage)
+                drift_share = drift_report['drift_share']
+                st.metric("Drift Share", f"{drift_share:.1%}" if isinstance(drift_share, (int, float)) else str(drift_share))
+            with col3:
+                st.metric("Drifted Features", drift_report['n_drifted_features'])
             
-            # Check for drift reports
-            st.subheader("Drift Detection")
-            try:
-                # Load latest drift report
-                drift_report_path = os.path.join("reports", "drift_report.json")
-                if os.path.exists(drift_report_path):
-                    with open(drift_report_path, 'r') as f:
-                        drift_report = json.load(f)
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Drift Detected", "Yes" if drift_report['dataset_drift'] else "No")
-                    with col2:
-                        drift_share = drift_report['drift_share']
-                        st.metric("Drift Share", f"{drift_share:.1%}" if isinstance(drift_share, (int, float)) else str(drift_share))
-                    with col3:
-                        st.metric("Drifted Features", drift_report['n_drifted_features'])
-                    
-                    # Display drifted features
-                    if drift_report['drifted_features']:
-                        st.write("Drifted Features:")
-                        for feature in drift_report['drifted_features']:
-                            st.write(f"- {feature}")
-                    
-                    # Link to MLflow
-                    st.write("View detailed drift report in MLflow:")
-                    st.markdown(f"[Open MLflow UI]({MLFLOW_TRACKING_URI})")
-                else:
-                    st.warning("No drift report found. Run drift detection to generate a report.")
-            except Exception as e:
-                st.error(f"Error loading drift report: {str(e)}")
-            
-            # Model performance metrics
-            st.subheader("Model Performance")
-            try:
-                # Load model performance metrics from MLflow
-                run = client.get_run(latest_version.run_id)
-                metrics = run.data.metrics
-                
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    accuracy = metrics.get('accuracy', 'N/A')
-                    st.metric("Accuracy", f"{accuracy:.3f}" if isinstance(accuracy, (int, float)) else accuracy)
-                with col2:
-                    f1 = metrics.get('f1', 'N/A')
-                    st.metric("F1 Score", f"{f1:.3f}" if isinstance(f1, (int, float)) else f1)
-                with col3:
-                    auc = metrics.get('auc', 'N/A')
-                    st.metric("AUC-ROC", f"{auc:.3f}" if isinstance(auc, (int, float)) else auc)
-                
-                # Link to MLflow for detailed metrics
-                st.write("View detailed metrics in MLflow:")
-                st.markdown(f"[Open MLflow UI]({MLFLOW_TRACKING_URI})")
-            except Exception as e:
-                st.error(f"Error loading model metrics: {str(e)}")
-        
-        except Exception as e:
-            st.error(f"Error connecting to MLflow: {str(e)}")
-            st.info("Please ensure MLflow server is running and accessible.")
+            # Display drifted features
+            if drift_report['drifted_features']:
+                st.write("Drifted Features:")
+                for feature in drift_report['drifted_features']:
+                    st.write(f"- {feature}")
+        else:
+            st.warning("No drift report found. Run drift detection to generate a report.")
+    except Exception as e:
+        st.error(f"Error loading drift report: {str(e)}")
 
 # Model Info tab
 elif selected_tab == "Model Info":

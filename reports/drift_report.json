@@ -1,0 +1,20 @@
+{
+    "dataset_drift": false,
+    "drift_share": 0.0,
+    "drifted_features": [],
+    "n_drifted_features": 0,
+    "report": {
+        "metrics": [
+            {
+                "result": {
+                    "dataset_drift": false
+                }
+            },
+            {
+                "result": {
+                    "drift_by_columns": {}
+                }
+            }
+        ]
+    }
+}
