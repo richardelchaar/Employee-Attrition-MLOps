@@ -2,6 +2,38 @@
 
 This document describes the automated monitoring and retraining process for the Employee Attrition model.
 
+## Automation Schedule
+
+### Monthly Production Workflow
+The complete production workflow runs automatically on the 1st of every month at 2:00 AM UTC. This workflow includes:
+
+1. **Data Loading and Cleaning**
+   - Fetches the latest employee data snapshot
+   - Cleans and preprocesses the data
+   - Validates data quality
+
+2. **Drift Detection**
+   - Compares current data against reference dataset
+   - Calculates drift metrics for all features
+   - Generates drift report
+
+3. **Model Retraining (if needed)**
+   - Triggered if drift exceeds thresholds
+   - Optimizes hyperparameters
+   - Trains new model
+   - Evaluates performance
+
+4. **Batch Prediction**
+   - Uses latest model (either existing or newly trained)
+   - Generates predictions for all employees
+   - Stores results in database
+
+### Daily Monitoring
+- Drift detection runs daily via GitHub Actions
+- Serves as early warning system
+- Does not trigger retraining or batch prediction
+- Results are logged for trend analysis
+
 ## Model Monitoring
 
 ### Drift Detection
