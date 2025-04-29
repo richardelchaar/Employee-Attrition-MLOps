@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_option_menu import option_menu
 import requests
 from datetime import datetime
@@ -312,6 +313,34 @@ elif selected_tab == "Monitoring":
             st.warning("No drift report found. Run drift detection to generate a report.")
     except Exception as e:
         st.error(f"Error loading drift report: {str(e)}")
+    
+    # Add a section to display html of training data profile
+    try:
+        st.subheader("Training Data Profile")
+
+        try:
+            api_url = os.getenv("API_URL", "http://api:8000")
+            response = requests.get(f"{api_url}/model-info")
+        except Exception as e:
+            response = requests.get("http://localhost:8000/model-info")
+
+        if response.status_code == 200:        
+            model_info = response.json()
+            model_ver = model_info['latest_registered_version']
+            run_id = model_info['latest_registered_run_id']
+
+            model = f"mlruns/models/AttritionProductionModel/version-{model_ver}/meta.yaml"
+            with open(model, 'r') as f:
+                model_yaml = yaml.safe_load(f)
+                model_source = model_yaml['source'].split('/')
+                best_trial_path = f"mlartifacts/{model_source[1]}/{model_source[2]}/{model_source[3]}"
+        
+        
+            with open(f"{best_trial_path}/data_baselines/training_data_profile_{run_id}.html", 'r', encoding="utf-8") as f:
+                html_content = f.read()
+            components.html(html_content, height=800, scrolling=True)
+    except Exception as e:
+        st.error(f"Error loading data profile: {str(e)}")
 
 # Model Info tab
 elif selected_tab == "Model Info":
