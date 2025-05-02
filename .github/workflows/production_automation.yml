@@ -1,67 +1,22 @@
-name: Production Automation
+name: Monthly MLOps Pipeline
 
 on:
-  # Scheduled runs
+  # Run at midnight on the first day of every month
   schedule:
-    - cron: '0 0 1 * *'  # Run at midnight on the first day of every month
-  # Manual trigger
+    - cron: '0 0 1 * *'
+  # Allow manual triggers
   workflow_dispatch:
-  # On push to main
+  # Run on push to main (for testing)
   push:
     branches:
       - main
     paths:
       - 'src/**'
       - 'scripts/**'
-      - 'tests/**'
       - '.github/workflows/production_automation.yml'
-  # On PR review approval
-  pull_request_review:
-    types: [submitted]
 
 jobs:
-  test:
-    if: |
-      github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-    
-    - name: Set up environment
-      run: |
-        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
-    
-    - name: Run tests
-      run: |
-        poetry run pytest tests/
-        
-    - name: Run linting
-      run: |
-        poetry run black . --check
-        poetry run isort . --check
-        poetry run flake8 .
-        poetry run mypy .
-
-
-  run_production_automation:
-    # Run on schedule, manual trigger, or push to main
-    if: |
-      github.event_name == 'schedule' || 
-      github.event_name == 'workflow_dispatch' || 
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+  run_pipeline:
     runs-on: ubuntu-latest
     
     steps:
@@ -78,43 +33,69 @@ jobs:
         pip install poetry
         poetry install
     
-    - name: Set up environment
+    - name: Set up environment variables
       run: |
-        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
-       
-    - name: Start MLflow server
-      run: |
-        poetry run mlflow server --host 127.0.0.1 --port 5001 &
-        sleep 5  # Wait for server to start
+        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYODBC=${{ secrets.DATABASE_URL_PYODBC }}" >> $GITHUB_ENV
+        echo "DRIFT_API_URL=${{ secrets.DRIFT_API_URL }}" >> $GITHUB_ENV
         
-    # Step 1: Create drift reference
-    - name: Create drift reference
-      id: create_reference
+    # Step 1: Run batch prediction
+    - name: Run batch prediction
+      id: batch_predict
       run: |
-        poetry run python scripts/create_drift_reference.py
-    # Step 2: Run drift detection
-    - name: Run drift detection
-      id: drift
+        poetry run python scripts/batch_predict.py
+        
+    # Step 2: Check feature drift
+    - name: Check feature drift
+      id: feature_drift
       continue-on-error: true
       run: |
-        poetry run python -m employee_attrition_mlops.drift_detection
-     
-    # Step 3: If drift detected, retrain model
+        # Get reference data from MLflow
+        poetry run python -c "
+        import mlflow
+        client = mlflow.tracking.MlflowClient()
+        model = client.get_latest_versions('EmployeeAttrition', stages=['Production'])[0]
+        run = client.get_run(model.run_id)
+        reference_data = client.download_artifacts(run.info.run_id, 'reference_data/reference_data.csv')
+        "
+        
+        # Call drift API
+        curl -X POST ${{ secrets.DRIFT_API_URL }}/drift/feature \
+          -H "Content-Type: application/json" \
+          -d @reference_data.json
+        
+    # Step 3: Check prediction drift
+    - name: Check prediction drift
+      id: prediction_drift
+      continue-on-error: true
+      run: |
+        # Get reference predictions from MLflow
+        poetry run python -c "
+        import mlflow
+        client = mlflow.tracking.MlflowClient()
+        model = client.get_latest_versions('EmployeeAttrition', stages=['Production'])[0]
+        run = client.get_run(model.run_id)
+        reference_predictions = client.download_artifacts(run.info.run_id, 'reference_predictions/reference_predictions.csv')
+        "
+        
+        # Call drift API
+        curl -X POST ${{ secrets.DRIFT_API_URL }}/drift/prediction \
+          -H "Content-Type: application/json" \
+          -d @reference_predictions.json
+        
+    # Step 4: Retrain if drift detected
     - name: Retrain model if drift detected
-      if: steps.drift.outcome == 'failure' && steps.drift.exitcode == 1
+      if: |
+        steps.feature_drift.outcome == 'failure' || 
+        steps.prediction_drift.outcome == 'failure'
       id: retrain
       run: |
         echo "Drift detected. Starting retraining process..."
         poetry run python scripts/optimize_train_select.py
-      
-    # Step 4: If no drift, run batch prediction
-    - name: Run batch prediction
-      if: steps.drift.outcome == 'success'
-      id: batch_predict
-      run: |
-        poetry run python scripts/batch_predict.py
+        
+        # Save new reference data after retraining
+        poetry run python scripts/save_reference_data.py
         
     # Step 5: Create summary issue
     - name: Create summary issue
@@ -123,15 +104,24 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          let summary = '## Production Automation Summary\n\n';
+          let summary = '## Monthly MLOps Pipeline Summary\n\n';
           
-          // Add drift detection results if available
+          // Add feature drift results if available
           if (fs.existsSync('reports/drift_report.json')) {
             const driftReport = JSON.parse(fs.readFileSync('reports/drift_report.json', 'utf8'));
-            summary += `### Drift Detection Results\n`;
+            summary += `### Feature Drift Results\n`;
             summary += `- Drift detected: ${driftReport.dataset_drift}\n`;
             summary += `- Drift share: ${(driftReport.drift_share * 100).toFixed(2)}%\n`;
             summary += `- Number of drifted features: ${driftReport.n_drifted_features}\n\n`;
+          }
+          
+          // Add prediction drift results if available
+          if (fs.existsSync('reports/prediction_drift_report.json')) {
+            const predDriftReport = JSON.parse(fs.readFileSync('reports/prediction_drift_report.json', 'utf8'));
+            summary += `### Prediction Drift Results\n`;
+            summary += `- Drift detected: ${predDriftReport.drift_detected}\n`;
+            summary += `- Drift score: ${predDriftReport.drift_score}\n`;
+            summary += `- Drifted features: ${predDriftReport.drifted_features.join(', ')}\n\n`;
           }
           
           // Add retraining results if available
@@ -143,42 +133,12 @@ jobs:
             summary += `- Performance improvement: ${retrainSummary.performance_improvement}\n\n`;
           }
           
-          // Add optimization results if available
-          if (fs.existsSync('reports/optimization_summary.json')) {
-            const optSummary = JSON.parse(fs.readFileSync('reports/optimization_summary.json', 'utf8'));
-            summary += `### Model Optimization Results\n`;
-            summary += `- Selected model type: ${optSummary.selected_model_type}\n`;
-            summary += `- Best hyperparameters: ${JSON.stringify(optSummary.best_hyperparameters)}\n`;
-            summary += `- Cross-validation score: ${optSummary.cv_score}\n\n`;
-          }
-          
           // Add batch prediction results if available
           if (fs.existsSync('reports/batch_prediction_summary.json')) {
             const predSummary = JSON.parse(fs.readFileSync('reports/batch_prediction_summary.json', 'utf8'));
             summary += `### Batch Prediction Results\n`;
             summary += `- Number of predictions: ${predSummary.num_predictions}\n`;
             summary += `- Attrition rate: ${(predSummary.attrition_rate * 100).toFixed(2)}%\n\n`;
-          }
-          
-          // Add metrics results if available
-          if (fs.existsSync('reports/metrics_summary.json')) {
-            const metricsSummary = JSON.parse(fs.readFileSync('reports/metrics_summary.json', 'utf8'));
-            summary += `### Model Metrics\n`;
-            summary += `- Accuracy: ${(metricsSummary.accuracy * 100).toFixed(2)}%\n`;
-            summary += `- Precision: ${(metricsSummary.precision * 100).toFixed(2)}%\n`;
-            summary += `- Recall: ${(metricsSummary.recall * 100).toFixed(2)}%\n`;
-            summary += `- F1 Score: ${(metricsSummary.f1_score * 100).toFixed(2)}%\n\n`;
-          }
-          
-          // Add fairness results if available
-          if (fs.existsSync('reports/fairness_summary.json')) {
-            const fairnessSummary = JSON.parse(fs.readFileSync('reports/fairness_summary.json', 'utf8'));
-            summary += `### Fairness Metrics\n`;
-            for (const [feature, metrics] of Object.entries(fairnessSummary)) {
-              summary += `#### ${feature}\n`;
-              summary += `- Demographic Parity Difference: ${metrics.demographic_parity_difference.toFixed(4)}\n`;
-              summary += `- Equalized Odds Difference: ${metrics.equalized_odds_difference.toFixed(4)}\n\n`;
-            }
           }
           
           // Add error information if available
@@ -189,16 +149,11 @@ jobs:
             summary += `- Error message: ${errorSummary.error}\n\n`;
           }
           
-          // Add MLflow run information
-          summary += `### MLflow Run Information\n`;
-          summary += `- Run ID: ${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}\n`;
-          summary += `- MLflow UI: ${{ secrets.MLFLOW_TRACKING_URI }}/#/experiments/0/runs/${{ steps.retrain.outputs.run_id || steps.batch_predict.outputs.run_id }}\n\n`;
-          
           // Create issue with summary
           await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            title: `Production Automation ${context.job.status === 'success' ? '✅' : '❌'} - ${new Date().toISOString().split('T')[0]}`,
+            title: `Monthly MLOps Pipeline ${context.job.status === 'success' ? '✅' : '❌'} - ${new Date().toISOString().split('T')[0]}`,
             body: summary,
             labels: context.job.status === 'success' ? ['automation-success'] : ['automation-failed']
           }); 

@@ -28,8 +28,10 @@ from employee_attrition_mlops.config import (
     DB_HISTORY_TABLE,
     DB_BATCH_PREDICTION_TABLE,
     EMPLOYEE_ID_COL,
-    SNAPSHOT_DATE_COL
+    SNAPSHOT_DATE_COL,
+    TARGET_COLUMN
 )
+
 # Import necessary transformers
 from employee_attrition_mlops.data_processing import AgeGroupTransformer, AddNewFeaturesTransformer
 
@@ -66,9 +68,19 @@ def main():
         logger.info(f"Latest snapshot date found: {max_date}")
 
     # Fetch employee records for the latest snapshot (raw data)
-    query = text(f"SELECT * FROM {DB_HISTORY_TABLE} WHERE {SNAPSHOT_DATE_COL} = :snap")
+    # Only get employees who haven't left (Attrition = 0)
+    query = text(f"""
+        SELECT * 
+        FROM {DB_HISTORY_TABLE} 
+        WHERE {SNAPSHOT_DATE_COL} = :snap 
+        AND {TARGET_COLUMN} = 0
+    """)
     df = pd.read_sql(query, engine, params={'snap': max_date})
-    logger.info(f"Fetched {len(df)} rows from '{DB_HISTORY_TABLE}' for snapshot '{max_date}'")
+    logger.info(f"Fetched {len(df)} current employees from '{DB_HISTORY_TABLE}' for snapshot '{max_date}'")
+
+    if len(df) == 0:
+        logger.warning("No current employees found in the latest snapshot. Exiting.")
+        sys.exit(0)
 
     # --- Apply Initial Custom Transformations MANUALLY ---
     # These steps are assumed to be missing from the saved pipeline artifact
@@ -139,6 +151,12 @@ def main():
         conn.execute(insert_sql, records)
         logger.info(f"Inserted {len(records)} batch predictions into '{DB_BATCH_PREDICTION_TABLE}'.")
 
+    # Return results for potential use in other scripts
+    return {
+        'predictions': results.to_dict(orient='records'),
+        'num_predictions': len(results),
+        'attrition_rate': (results['Prediction'] == 'Yes').mean()
+    }
 
 if __name__ == '__main__':
     main() 

@@ -11,6 +11,7 @@ services:
     volumes:
       - ./mlruns:/mlflow_runs
       - ./mlartifacts:/mlflow_artifacts
+      - ./drift_reference:/drift_reference
     networks:
       - app_network
     healthcheck:
@@ -22,7 +23,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile  # Your main backend Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
@@ -47,6 +48,33 @@ services:
       timeout: 5s
       retries: 5
 
+  drift-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.drift
+    ports:
+      - "${DRIFT_PORT:-8000}:8000"
+    depends_on:
+      mlflow-server:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=${DATABASE_URL_PYMSSQL}
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5001
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    volumes:
+      - ./drift_reference:/app/drift_reference
+      - ./drift_artifacts:/app/drift_artifacts
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   frontend:
     build:
       context: .
@@ -55,9 +83,12 @@ services:
       - "${FRONTEND_PORT:-8501}:8501"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+      drift-api:
+        condition: service_healthy
     environment:
       - API_URL=http://api:8000
+      - DRIFT_API_URL=http://drift-api:8000
     volumes:
       - ./src/frontend:/app/src/frontend
       - ./.env:/app/.env
