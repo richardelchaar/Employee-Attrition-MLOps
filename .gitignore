@@ -140,7 +140,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -185,9 +184,16 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# PyPI configuration file
+.pypirc
+
 # Drift detection artifacts
-drift_artifacts/
-drift_reference/
+drift_artifacts/*
+!drift_artifacts/.gitkeep
+!drift_artifacts/README.md
+drift_reference/*
+!drift_reference/.gitkeep
+!drift_reference/README.md
 drift_test_results.json
 reference_train_data.parquet
 
@@ -208,3 +214,8 @@ julian.vscode/
 # Database
 employee_attrition.db
 *.db
+
+# Environment variables
+.env
+.env.*
+!.env.example

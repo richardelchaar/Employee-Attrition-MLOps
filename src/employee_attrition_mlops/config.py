@@ -26,7 +26,7 @@ BASELINE_PROFILE_FILENAME = "training_data_profile.html" # Example, adjust if us
 CONFUSION_MATRIX_PLOT_FILENAME = "confusion_matrix.png" # Example plot name
 ROC_CURVE_PLOT_FILENAME = "roc_curve.png" # Example plot name
 FEATURE_IMPORTANCE_PLOT_FILENAME = "feature_importance.png" # Example plot name
-DRIFT_REPORT_FILENAME = "drift_report.html" # Example drift report name (Evidently often uses HTML)
+DRIFT_REPORT_FILENAME = "drift_report.json" # Example drift report name (Evidently often uses HTML)
 TEST_METRICS_FILENAME = "test_metrics_summary.json" # For saving test metrics
 
 # --- Database Configuration ---
@@ -104,7 +104,7 @@ PRODUCTION_MODEL_NAME = "AttritionProductionModel" # Registered model name for A
 
 # --- MLflow ---
 # Load MLflow tracking URI from environment or use a default
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000")
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5001")
 # Note: If running MLflow server in Docker, client URI might need adjustment
 # (e.g., "http://host.docker.internal:5000" from another container, or service name in docker-compose)
 DEFAULT_EXPERIMENT_NAME = "Employee Attrition Default (DB)" # Default experiment if none is set explicitly

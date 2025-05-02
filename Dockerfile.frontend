@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy local project files to the container
+COPY . /app
+
+# Install dependencies directly using pip
+RUN pip install --upgrade pip && \
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    /root/.local/bin/poetry config virtualenvs.create false && \
+    /root/.local/bin/poetry install --without dev --no-interaction
+
+# Set environment variables including PYTHONPATH
+ENV PYTHONPATH=/app
+
+# Expose Streamlit port
+EXPOSE 8501
+
+# Run Streamlit app
+CMD ["streamlit", "run", "src/frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]

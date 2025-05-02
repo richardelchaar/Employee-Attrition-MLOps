@@ -31,6 +31,7 @@ python-dotenv = "^1.0.0"
 imbalanced-learn = "*"
 shap = "^0.45.0"
 fairlearn = "*"
+evidently = "^0.4.17"
 ydata-profiling = "^4.8"
 matplotlib = "^3.7.0"
 seaborn = "^0.12.0"
@@ -42,8 +43,12 @@ pydantic = {extras = ["email"], version = "^2.0.0"}
 tpot = "^0.11.7"
 dowhy = "*"
 ruff = "*"
-evidently = "^0.4.12"
 mlflow = "^2.10.0"
+streamlit = "*"
+streamlit_option_menu = "*"
+
+# --- Dependency Groups (kept as original) ---
+alembic = "^1.15.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
@@ -98,4 +103,3 @@ python_files = "test_*.py"
 python_functions = "test_*"
 python_classes = "Test*"
 addopts = "-ra -q"
-

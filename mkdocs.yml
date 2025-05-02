@@ -1,0 +1,35 @@
+site_name: Employee Attrition MLOps
+site_description: Documentation for the Employee Attrition MLOps project
+site_author: Your Name
+repo_url: https://github.com/yourusername/Employee-Attrition-2
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - API Documentation: api_documentation.md
+  - Getting Started: getting_started.md
+  - CI/CD & Automation: ci_cd_automation.md
+  - Monitoring & Retraining: monitoring.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed
+  - pymdownx.emoji
+  - pymdownx.tasklist
+  - pymdownx.arithmatex
+  - admonition
+  - footnotes
+  - meta
+  - toc:
+      permalink: true 
