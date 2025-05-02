@@ -371,13 +371,15 @@ def optimize_select_and_train(models_to_opt: list):
         X_train, X_test, y_train, y_test = None, None, None, None # Initialize
         try:
             logger.info("Loading data from database...")
-            if not DATABASE_URL_PYMSSQL:
-                 logger.error("FATAL: DATABASE_URL_PYMSSQL environment variable not set.")
-                 mlflow.set_tag("status", "FAILED_DB_CONFIG")
-                 mlflow.end_run("FAILED")
-                 sys.exit(1)
-
+            # Our updated load_and_clean_data_from_db function will automatically choose 
+            # the right connection string based on environment (Docker vs local)
             df_raw = load_and_clean_data_from_db(table_name=DB_HISTORY_TABLE)
+            
+            if df_raw is None:
+                logger.error("FATAL: Failed to load data from database.")
+                mlflow.set_tag("status", "FAILED_DB_LOAD")
+                mlflow.end_run("FAILED")
+                sys.exit(1)
 
             # --- Create AgeGroup Feature ---
             # This needs to be done *before* splitting if AgeGroup is a sensitive feature

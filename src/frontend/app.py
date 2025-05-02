@@ -284,67 +284,72 @@ elif selected_tab == "Workforce Overview":
 
 # Monitoring tab
 elif selected_tab == "Monitoring":
-    st.header("Model Monitoring")
-
-    # Check for drift reports
-    st.subheader("Drift Detection")
-    try:
-        # Load latest drift report
-        drift_report_path = os.path.join("reports", "drift_report.json")
-        if os.path.exists(drift_report_path):
-            with open(drift_report_path, 'r') as f:
-                drift_report = json.load(f)
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Drift Detected", "Yes" if drift_report['dataset_drift'] else "No")
-            with col2:
-                drift_share = drift_report['drift_share']
-                st.metric("Drift Share", f"{drift_share:.1%}" if isinstance(drift_share, (int, float)) else str(drift_share))
-            with col3:
-                st.metric("Drifted Features", drift_report['n_drifted_features'])
-            
-            # Display drifted features
-            if drift_report['drifted_features']:
-                st.write("Drifted Features:")
-                for feature in drift_report['drifted_features']:
-                    st.write(f"- {feature}")
-        else:
-            st.warning("No drift report found. Run drift detection to generate a report.")
-    except Exception as e:
-        st.error(f"Error loading drift report: {str(e)}")
+    st.header("Monitoring")
     
-    # Add a section to display html of training data profile
+    # Get API URL from environment
+    drift_api_url = os.getenv("DRIFT_API_URL", "http://drift-api:8000")
+    api_accessible = False
+    latest_feature_drift = None
+    latest_prediction_drift = None
+
+    # --- Feature Drift Section ---
+    st.subheader("Feature Drift Status")
     try:
-        st.subheader("Training Data Profile")
-
-        try:
-            api_url = os.getenv("API_URL", "http://api:8000")
-            response = requests.get(f"{api_url}/model-info")
-        except Exception as e:
-            response = requests.get("http://localhost:8000/model-info")
-
-        if response.status_code == 200:        
-            model_info = response.json()
-            model_ver = model_info['latest_registered_version']
-            run_id = model_info['latest_registered_run_id']
-
-            model = f"mlruns/models/AttritionProductionModel/version-{model_ver}/meta.yaml"
-            with open(model, 'r') as f:
-                model_yaml = yaml.safe_load(f)
-                model_source = model_yaml['source'].split('/')
-                best_trial_path = f"mlartifacts/{model_source[1]}/{model_source[2]}/{model_source[3]}"
+        feature_drift_url = f"{drift_api_url}/drift/feature/latest"
+        response = requests.get(feature_drift_url, timeout=10) # Add timeout
+        response.raise_for_status() 
+        latest_feature_drift = response.json()
+        api_accessible = True # Mark API as accessible if at least one call succeeds
         
-        
-            with open(f"{best_trial_path}/data_baselines/training_data_profile_{run_id}.html", 'r', encoding="utf-8") as f:
-                html_content = f.read()
-            components.html(html_content, height=800, scrolling=True)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Dataset Drift Detected", "Yes" if latest_feature_drift.get("dataset_drift") else "No")
+        col2.metric("Share of Drifting Features", f"{latest_feature_drift.get('drift_share', 0)*100:.1f}%")
+        col3.metric("Number of Drifting Features", latest_feature_drift.get('n_drifted_features', 0))
+
+        if latest_feature_drift.get("drifted_features"):
+            st.write("Drifted Features:")
+            st.json(latest_feature_drift.get("drifted_features"))
+            
+        st.caption(f"Last check: {datetime.fromisoformat(latest_feature_drift.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S') if latest_feature_drift.get('timestamp') else 'N/A'}")
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Could not retrieve latest feature drift data from API ({feature_drift_url}): {e}")
     except Exception as e:
-        st.error(f"Error loading data profile: {str(e)}")
+        st.error(f"An error occurred processing feature drift data: {e}")
+        
+    st.divider()
+    
+    # --- Prediction Drift Section ---
+    st.subheader("Prediction Drift Status")
+    try:
+        prediction_drift_url = f"{drift_api_url}/drift/prediction/latest"
+        response = requests.get(prediction_drift_url, timeout=10) # Add timeout
+        response.raise_for_status() 
+        latest_prediction_drift = response.json()
+        api_accessible = True # Mark API as accessible
+        
+        col1, col2 = st.columns(2)
+        detected = latest_prediction_drift.get("prediction_drift_detected")
+        score = latest_prediction_drift.get("prediction_drift_score")
+        col1.metric("Prediction Drift Detected", "Yes" if detected else ("No" if detected is False else "Unknown"))
+        col2.metric("Prediction Drift Score", f"{score:.4f}" if score is not None else "N/A")
+        
+        st.caption(f"Last check: {datetime.fromisoformat(latest_prediction_drift.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S') if latest_prediction_drift.get('timestamp') else 'N/A'}")
+
+    except requests.exceptions.RequestException as e:
+        if not api_accessible: # Only show connection error if it hasn't succeeded before
+             st.error(f"Could not connect to Drift API ({drift_api_url}). Please ensure it is running.")
+        else:
+             st.warning(f"Could not retrieve latest prediction drift data from API ({prediction_drift_url}): {e}")
+    except Exception as e:
+        st.error(f"An error occurred processing prediction drift data: {e}")
+
+    # Optional: Add section to display drift report HTML if available?
+    # This would require the UI container to access the report artifacts.
 
 # Model Info tab
 elif selected_tab == "Model Info":
-    st.header("Model Info")
+    st.header("Model Information")
 
     # Fetch model info from the API
     try:

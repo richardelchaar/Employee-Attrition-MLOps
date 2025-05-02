@@ -7,18 +7,23 @@ on:
   # Allow manual triggers
   workflow_dispatch:
   # Run on push to main (for testing)
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'scripts/**'
-      - '.github/workflows/production_automation.yml'
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'src/**'
+  #     - 'scripts/**'
+  #     - '.github/workflows/production_automation.yml'
 
 jobs:
   run_pipeline:
     runs-on: ubuntu-latest
-    
+    env: # Set env vars for all steps
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+        DATABASE_URL_PYODBC: ${{ secrets.DATABASE_URL_PYODBC }}
+        DRIFT_API_URL: ${{ secrets.DRIFT_API_URL }} # Ensure this secret is set in GitHub
+
     steps:
     - uses: actions/checkout@v3
     
@@ -31,129 +36,123 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install poetry
-        poetry install
+        poetry install --only main # Use --only main for consistency
     
-    - name: Set up environment variables
-      run: |
-        echo "MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }}" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYMSSQL=${{ secrets.DATABASE_URL_PYMSSQL }}" >> $GITHUB_ENV
-        echo "DATABASE_URL_PYODBC=${{ secrets.DATABASE_URL_PYODBC }}" >> $GITHUB_ENV
-        echo "DRIFT_API_URL=${{ secrets.DRIFT_API_URL }}" >> $GITHUB_ENV
+    # Removed Set up environment variables step (using job-level env)
         
     # Step 1: Run batch prediction
+    # Assuming batch_predict.py saves predictions and maybe features?
+    # Let's assume it saves features to reports/batch_features.json 
+    # and predictions to reports/batch_predictions.json
     - name: Run batch prediction
       id: batch_predict
       run: |
         poetry run python scripts/batch_predict.py
+        # Add error handling/check if output files exist
+        if [ ! -f reports/batch_predictions.json ] || [ ! -f reports/batch_features.json ]; then
+          echo "::error::Batch prediction did not produce expected output files."
+          exit 1
+        fi
+        echo "Batch prediction completed."
         
-    # Step 2: Check feature drift
+    # Step 2: Check feature drift via API
     - name: Check feature drift
       id: feature_drift
-      continue-on-error: true
       run: |
-        # Get reference data from MLflow
-        poetry run python -c "
-        import mlflow
-        client = mlflow.tracking.MlflowClient()
-        model = client.get_latest_versions('EmployeeAttrition', stages=['Production'])[0]
-        run = client.get_run(model.run_id)
-        reference_data = client.download_artifacts(run.info.run_id, 'reference_data/reference_data.csv')
-        "
-        
-        # Call drift API
-        curl -X POST ${{ secrets.DRIFT_API_URL }}/drift/feature \
+        echo "Checking feature drift via API: $DRIFT_API_URL"
+        # Prepare data payload (assuming features are in reports/batch_features.json)
+        jq -c '{ data: . }' reports/batch_features.json > payload_features.json
+
+        curl -f -X POST "$DRIFT_API_URL/drift/feature" \
           -H "Content-Type: application/json" \
-          -d @reference_data.json
+          -d @payload_features.json -o reports/feature_drift_results.json
         
-    # Step 3: Check prediction drift
+        # Extract result for later steps
+        DRIFT_DETECTED=$(jq -r '.dataset_drift' reports/feature_drift_results.json)
+        echo "Feature drift detected: $DRIFT_DETECTED"
+        echo "drift_detected=$DRIFT_DETECTED" >> $GITHUB_OUTPUT
+        
+    # Step 3: Check prediction drift via API
     - name: Check prediction drift
       id: prediction_drift
-      continue-on-error: true
       run: |
-        # Get reference predictions from MLflow
-        poetry run python -c "
-        import mlflow
-        client = mlflow.tracking.MlflowClient()
-        model = client.get_latest_versions('EmployeeAttrition', stages=['Production'])[0]
-        run = client.get_run(model.run_id)
-        reference_predictions = client.download_artifacts(run.info.run_id, 'reference_predictions/reference_predictions.csv')
-        "
+        echo "Checking prediction drift via API: $DRIFT_API_URL"
+        # Prepare data payload (assuming predictions are in reports/batch_predictions.json)
+        jq -c '{ data: . }' reports/batch_predictions.json > payload_predictions.json
         
-        # Call drift API
-        curl -X POST ${{ secrets.DRIFT_API_URL }}/drift/prediction \
+        curl -f -X POST "$DRIFT_API_URL/drift/prediction" \
           -H "Content-Type: application/json" \
-          -d @reference_predictions.json
+          -d @payload_predictions.json -o reports/prediction_drift_results.json
         
-    # Step 4: Retrain if drift detected
+        # Extract result for later steps
+        DRIFT_DETECTED=$(jq -r '.prediction_drift_detected' reports/prediction_drift_results.json)
+        echo "Prediction drift detected: $DRIFT_DETECTED"
+        echo "drift_detected=$DRIFT_DETECTED" >> $GITHUB_OUTPUT
+
+    # Step 4: Retrain if drift detected in EITHER features OR predictions
     - name: Retrain model if drift detected
-      if: |
-        steps.feature_drift.outcome == 'failure' || 
-        steps.prediction_drift.outcome == 'failure'
+      # Use the outputs from drift check steps
+      if: steps.feature_drift.outputs.drift_detected == 'true' || steps.prediction_drift.outputs.drift_detected == 'true'
       id: retrain
       run: |
-        echo "Drift detected. Starting retraining process..."
+        echo "Drift detected in features OR predictions. Starting retraining process..."
         poetry run python scripts/optimize_train_select.py
         
         # Save new reference data after retraining
+        echo "Saving new reference data and predictions..."
         poetry run python scripts/save_reference_data.py
+        echo "::set-output name=retrained::true"
         
     # Step 5: Create summary issue
     - name: Create summary issue
+      # Always run this step to report status
       if: always()
       uses: actions/github-script@v6
       with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const fs = require('fs');
-          let summary = '## Monthly MLOps Pipeline Summary\n\n';
+          let summary = `## Monthly MLOps Pipeline Summary (${new Date().toISOString().split('T')[0]})\n\n`;
+          summary += `- Workflow Status: ${context.job.status}\n`;
           
-          // Add feature drift results if available
-          if (fs.existsSync('reports/drift_report.json')) {
-            const driftReport = JSON.parse(fs.readFileSync('reports/drift_report.json', 'utf8'));
-            summary += `### Feature Drift Results\n`;
-            summary += `- Drift detected: ${driftReport.dataset_drift}\n`;
-            summary += `- Drift share: ${(driftReport.drift_share * 100).toFixed(2)}%\n`;
-            summary += `- Number of drifted features: ${driftReport.n_drifted_features}\n\n`;
-          }
+          // Add feature drift results
+          try {
+            const featureDrift = JSON.parse(fs.readFileSync('reports/feature_drift_results.json', 'utf8'));
+            summary += `\n### Feature Drift Results\n`;
+            summary += `- Drift detected: ${featureDrift.dataset_drift}\n`;
+            summary += `- Drift share: ${(featureDrift.drift_share * 100).toFixed(2)}%\n`;
+            summary += `- Number of drifted features: ${featureDrift.n_drifted_features}\n`;
+          } catch (e) { summary += '\n- Could not read feature drift results.\n'; }
+
+          // Add prediction drift results
+          try {
+            const predDrift = JSON.parse(fs.readFileSync('reports/prediction_drift_results.json', 'utf8'));
+            summary += `\n### Prediction Drift Results\n`;
+            summary += `- Drift detected: ${predDrift.prediction_drift_detected}\n`;
+            summary += `- Drift score: ${predDrift.prediction_drift_score !== null ? predDrift.prediction_drift_score.toFixed(4) : 'N/A'}\n`;
+          } catch (e) { summary += '\n- Could not read prediction drift results.\n'; }
+
+          // Add retraining status
+          const retrained = '${{ steps.retrain.outputs.retrained }}' === 'true';
+          summary += `\n### Retraining Status\n`;
+          summary += `- Model Retrained: ${retrained ? 'Yes' : 'No'}\n`;
           
-          // Add prediction drift results if available
-          if (fs.existsSync('reports/prediction_drift_report.json')) {
-            const predDriftReport = JSON.parse(fs.readFileSync('reports/prediction_drift_report.json', 'utf8'));
-            summary += `### Prediction Drift Results\n`;
-            summary += `- Drift detected: ${predDriftReport.drift_detected}\n`;
-            summary += `- Drift score: ${predDriftReport.drift_score}\n`;
-            summary += `- Drifted features: ${predDriftReport.drifted_features.join(', ')}\n\n`;
-          }
-          
-          // Add retraining results if available
-          if (fs.existsSync('reports/retraining_summary.json')) {
-            const retrainSummary = JSON.parse(fs.readFileSync('reports/retraining_summary.json', 'utf8'));
-            summary += `### Retraining Results\n`;
-            summary += `- Was retrained: ${retrainSummary.was_retrained}\n`;
-            summary += `- New model performance: ${retrainSummary.new_model_performance}\n`;
-            summary += `- Performance improvement: ${retrainSummary.performance_improvement}\n\n`;
-          }
-          
-          // Add batch prediction results if available
-          if (fs.existsSync('reports/batch_prediction_summary.json')) {
+          // Add batch prediction summary if available
+          try {
             const predSummary = JSON.parse(fs.readFileSync('reports/batch_prediction_summary.json', 'utf8'));
-            summary += `### Batch Prediction Results\n`;
+            summary += `\n### Batch Prediction Results\n`;
             summary += `- Number of predictions: ${predSummary.num_predictions}\n`;
-            summary += `- Attrition rate: ${(predSummary.attrition_rate * 100).toFixed(2)}%\n\n`;
-          }
+            summary += `- Attrition rate: ${(predSummary.attrition_rate * 100).toFixed(2)}%\n`;
+          } catch (e) { summary += '\n- Could not read batch prediction summary.\n'; }
           
-          // Add error information if available
-          if (fs.existsSync('reports/automation_error.json')) {
-            const errorSummary = JSON.parse(fs.readFileSync('reports/automation_error.json', 'utf8'));
-            summary += `### Error Information\n`;
-            summary += `- Error type: ${errorSummary.error_type}\n`;
-            summary += `- Error message: ${errorSummary.error}\n\n`;
-          }
+          // Add link to workflow run
+          summary += `\n[Link to Workflow Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n`;
           
-          // Create issue with summary
+          // Create issue
           await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            title: `Monthly MLOps Pipeline ${context.job.status === 'success' ? '✅' : '❌'} - ${new Date().toISOString().split('T')[0]}`,
+            title: `Monthly Pipeline ${context.job.status === 'success' ? (retrained ? '✅ Retrained' : '✅ No Drift') : '❌ Failed'} - ${new Date().toISOString().split('T')[0]}`,
             body: summary,
-            labels: context.job.status === 'success' ? ['automation-success'] : ['automation-failed']
+            labels: [`automation-${context.job.status === 'success' ? 'success' : 'failed'}`, retrained ? 'retrained' : 'no-drift']
           }); 

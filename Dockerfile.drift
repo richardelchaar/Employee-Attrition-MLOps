@@ -20,6 +20,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false
 
 # Install dependencies ONLY (don't install the project itself)
+# Use --without dev (like main Dockerfile) and --no-root (needed here)
 RUN poetry install --without dev --no-interaction --no-root
 
 # Copy application code

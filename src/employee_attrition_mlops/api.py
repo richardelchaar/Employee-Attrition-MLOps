@@ -11,6 +11,7 @@ from .config import (
     DB_PREDICTION_LOG_TABLE
 )
 from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel # Added for health response model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,12 @@ app = FastAPI()
 model = None
 model_info = {}
 engine = None
+
+# Define a response model for the health check
+class HealthResponse(BaseModel):
+    status: str
+    model_status: str
+    db_status: str
 
 # Retry configuration
 MAX_RETRIES = 10
@@ -103,8 +110,26 @@ async def shutdown_event():
         engine.dispose()
         logger.info("Database engine disposed.")
 
-@app.get("/health")
-async def health():
+# New simple health check endpoint
+@app.get("/health", response_model=HealthResponse)
+async def simple_health_check():
+    """Basic health check for container status."""
+    model_status = "loaded" if model is not None else "not loaded"
+    db_status = "connected" if engine is not None else "disconnected"
+    
+    # Basic check if services are initialized
+    if model is not None and engine is not None:
+        return HealthResponse(status="ok", model_status=model_status, db_status=db_status)
+    else:
+        # Return 503 if services are not ready
+        raise HTTPException(
+            status_code=503, 
+            detail=HealthResponse(status="error", model_status=model_status, db_status=db_status).dict()
+        )
+
+# Keep the old health check for more detailed info if needed, maybe rename?
+@app.get("/detailed-health") 
+async def detailed_health():
     """Health check endpoint with model information."""
     if model is None:
         return {"status": "error", "model_loaded": False, "error": "Model not loaded yet"}
