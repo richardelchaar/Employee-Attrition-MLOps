@@ -120,12 +120,12 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
 
     runs-on: ubuntu-latest
-    env: # Set env vars for all steps
-        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-        DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
-        DATABASE_URL_PYODBC: ${{ secrets.DATABASE_URL_PYODBC }}
-        DRIFT_API_URL: ${{ secrets.DRIFT_API_URL }} # Ensure this secret is set in GitHub
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    # env: # Set env vars for all steps
+    #     MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+    #     DATABASE_URL_PYMSSQL: ${{ secrets.DATABASE_URL_PYMSSQL }}
+    #     DATABASE_URL_PYODBC: ${{ secrets.DATABASE_URL_PYODBC }}
+    #     DRIFT_API_URL: ${{ secrets.DRIFT_API_URL }} # Ensure this secret is set in GitHub
+    #     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
     steps:
     - uses: actions/checkout@v3
@@ -141,13 +141,13 @@ jobs:
         pip install poetry
         poetry install --only main # Use --only main for consistency
     
-    # # Hardcoded env if github secrets are not set
-    # - name: Set up environment
-    #   run: |
-    #     echo "MLFLOW_TRACKING_URI=http://localhost:5001" >> $GITHUB_ENV
-    #     echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
-    #     echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
-    #     echo "DRIFT_API_URL=http://drift-api:8000" >> $GITHUB_ENV
+    # Hardcoded env if github secrets are not set
+    - name: Set up environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=http://127.0.0.1:5001" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYMSSQL=mssql+pymssql://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition" >> $GITHUB_ENV
+        echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
+        echo "DRIFT_API_URL=http://drift-api:8000" >> $GITHUB_ENV
 
     # - name: Build and run services with Docker Compose
     #   run: |
