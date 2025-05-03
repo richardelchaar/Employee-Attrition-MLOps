@@ -5,6 +5,7 @@ import joblib
 import os
 from unittest.mock import patch, MagicMock, mock_open, call
 from pathlib import Path
+import pandas as pd
 
 # Assuming utils module is importable 
 # Adjust the import path if project structure is different
@@ -259,3 +260,49 @@ def test_download_mlflow_artifact_exception(mock_logger, MockMlflowClient):
     error_msg = mock_logger.error.call_args[0][0]
     assert "Failed to download artifact" in error_msg
     assert "Artifact not found" in error_msg
+
+@patch('employee_attrition_mlops.utils.Report')
+def test_generate_evidently_profile_both_none(mock_Report):
+    from employee_attrition_mlops.utils import generate_evidently_profile
+    fake_report = MagicMock()
+    mock_Report.return_value = fake_report
+    profile = generate_evidently_profile(current_data=None, reference_data=None)
+    mock_Report.assert_called_once()
+    fake_report.run.assert_called_once_with(current_data=None)
+    assert profile is fake_report
+
+@patch('employee_attrition_mlops.utils.Report')
+def test_generate_evidently_profile_current_only(mock_Report):
+    current = pd.DataFrame({'a': [1,2,3]})
+    fake_report = MagicMock()
+    mock_Report.return_value = fake_report
+    from employee_attrition_mlops.utils import generate_evidently_profile
+    profile = generate_evidently_profile(current_data=current)
+    mock_Report.assert_called_once()
+    fake_report.run.assert_called_once_with(current_data=current)
+    assert profile is fake_report
+
+@patch('employee_attrition_mlops.utils.Report')
+def test_generate_evidently_profile_reference_only(mock_Report):
+    import pandas as pd
+    reference = pd.DataFrame({'a': [4,5,6]})
+    fake_report = MagicMock()
+    mock_Report.return_value = fake_report
+    from employee_attrition_mlops.utils import generate_evidently_profile
+    profile = generate_evidently_profile(current_data=None, reference_data=reference)
+    mock_Report.assert_called_once()
+    fake_report.run.assert_called_once_with(reference_data=reference, current_data=None)
+    assert profile is fake_report
+
+@patch('employee_attrition_mlops.utils.Report')
+def test_generate_evidently_profile_both_provided(mock_Report):
+    import pandas as pd
+    current = pd.DataFrame({'a': [1,2,3]})
+    reference = pd.DataFrame({'a': [4,5,6]})
+    fake_report = MagicMock()
+    mock_Report.return_value = fake_report
+    from employee_attrition_mlops.utils import generate_evidently_profile
+    profile = generate_evidently_profile(current_data=current, reference_data=reference)
+    mock_Report.assert_called_once()
+    fake_report.run.assert_called_once_with(reference_data=reference, current_data=current)
+    assert profile is fake_report
