@@ -36,7 +36,7 @@ flowchart LR
     style DriftResult fill:#FFD700
     style TestResult fill:#FFD700
 
-    %% Add subgraphs for better organization
+    %% Reorganized subgraphs
     subgraph "Initialization"
         Start
         Trigger
@@ -49,14 +49,11 @@ flowchart LR
         BatchPred
         DriftCheck
         DriftResult
-    end
-
-    subgraph "Model Management"
         Retrain
-        DockerBuild
     end
 
-    subgraph "Reporting"
+    subgraph "Deployment & Reporting"
+        DockerBuild
         CreateIssue
         End
     end
