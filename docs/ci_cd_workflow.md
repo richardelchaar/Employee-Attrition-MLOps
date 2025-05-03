@@ -9,55 +9,32 @@ The CI/CD pipeline is designed to run monthly checks for model drift and automat
 ## Workflow Diagram
 
 ```mermaid
-graph TD
-    A[Trigger] --> B{Event Type}
-    B -->|Schedule| C[Monthly Run]
-    B -->|Manual| D[Workflow Dispatch]
+flowchart TD
+    Start([Start]) --> Trigger{Trigger Type}
+    Trigger -->|Monthly Schedule| UnitTest[Unit Tests]
+    Trigger -->|Manual Run| UnitTest
     
-    C --> E[Unit Tests]
-    D --> E
+    UnitTest --> TestResult{Tests Pass?}
+    TestResult -->|No| Fail([Fail])
+    TestResult -->|Yes| Pipeline[Run Pipeline]
     
-    E --> F{Tests Pass?}
-    F -->|Yes| G[Run Pipeline]
-    F -->|No| H[Fail]
+    Pipeline --> BatchPred[Batch Prediction]
+    BatchPred --> DriftCheck[Drift Detection]
     
-    G --> I[Batch Prediction]
-    I --> J[Feature Drift Check]
-    J --> K[Prediction Drift Check]
+    DriftCheck --> DriftResult{Drift Detected?}
+    DriftResult -->|No| CreateIssue[Create Summary Issue]
+    DriftResult -->|Yes| Retrain[Retrain Model]
     
-    K --> L{Drift Detected?}
-    L -->|Yes| M[Retrain Model]
-    L -->|No| N[Skip Retraining]
+    Retrain --> DockerBuild[Build & Push Docker Images]
+    DockerBuild --> CreateIssue
     
-    M --> O[Create Summary Issue]
-    N --> O
+    CreateIssue --> End([End])
     
-    L -->|Yes| P[Docker Build & Push]
-    P --> Q[MLflow Image]
-    P --> R[API Image]
-    P --> S[Frontend Image]
-    P --> T[Drift API Image]
-    
-    subgraph "Unit Test Job"
-        E --> E1[Install Dependencies]
-        E1 --> E2[Run Tests]
-        E2 --> E3[Run Linting]
-    end
-    
-    subgraph "Pipeline Job"
-        G --> G1[Setup Environment]
-        G1 --> G2[Docker Compose]
-        G2 --> G3[Batch Prediction]
-        G3 --> G4[Drift Detection]
-        G4 --> G5[Model Retraining]
-        G5 --> G6[Create Issue]
-    end
-    
-    subgraph "Docker Build Job"
-        P --> P1[Setup Docker]
-        P1 --> P2[Login to DockerHub]
-        P2 --> P3[Build & Push Images]
-    end
+    style Start fill:#90EE90
+    style End fill:#90EE90
+    style Fail fill:#FFB6C1
+    style DriftResult fill:#FFD700
+    style TestResult fill:#FFD700
 ```
 
 ## Workflow Components
