@@ -34,6 +34,7 @@ if SRC_PATH not in sys.path:
 from employee_attrition_mlops.config import (
     MLFLOW_TRACKING_URI,
     PRODUCTION_MODEL_NAME,
+    REPORTS_PATH,
     DB_HISTORY_TABLE,
     SNAPSHOT_DATE_COL,
     TARGET_COLUMN
@@ -154,16 +155,20 @@ def save_reference_data():
         # Log artifacts to the original model training run
         with mlflow.start_run(run_id=run_id_for_artifacts):
             # Save directly to MLflow - temporary files are created in memory only
-            import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.parquet') as temp_feature_file:
-                reference_data.to_parquet(temp_feature_file.name, index=False)
-                mlflow.log_artifact(temp_feature_file.name, REFERENCE_FEATURES_DIR)
-                logger.info(f"Logged reference data to MLflow: {REFERENCE_FEATURES_DIR}/{REFERENCE_FEATURES_FILENAME}")
+            # import tempfile
+            # with tempfile.NamedTemporaryFile(suffix='.parquet') as temp_feature_file:
+            #     temp_path = temp_feature_file.name
+            temp_path = os.path.join(REPORTS_PATH, f"drift_reference_{run_id_for_artifacts}.parquet")
+            reference_data.to_parquet(temp_path, index=False)
+            mlflow.log_artifact(temp_path, REFERENCE_FEATURES_DIR)
+            logger.info(f"Logged reference data to MLflow: {REFERENCE_FEATURES_DIR}/{REFERENCE_FEATURES_FILENAME}")
             
-            with tempfile.NamedTemporaryFile(suffix='.csv') as temp_pred_file:
-                reference_predictions.to_csv(temp_pred_file.name, index=False)
-                mlflow.log_artifact(temp_pred_file.name, REFERENCE_PREDICTIONS_DIR)
-                logger.info(f"Logged reference predictions to MLflow: {REFERENCE_PREDICTIONS_DIR}/{REFERENCE_PREDICTIONS_FILENAME}")
+            # with tempfile.NamedTemporaryFile(suffix='.csv') as temp_pred_file:
+            #     temp_path = temp_feature_file.name
+            temp_path = os.path.join(REPORTS_PATH, f"drift_reference_{run_id_for_artifacts}.csv")
+            reference_predictions.to_csv(temp_path, index=False)
+            mlflow.log_artifact(temp_path, REFERENCE_PREDICTIONS_DIR)
+            logger.info(f"Logged reference predictions to MLflow: {REFERENCE_PREDICTIONS_DIR}/{REFERENCE_PREDICTIONS_FILENAME}")
 
             # Log metadata
             try:

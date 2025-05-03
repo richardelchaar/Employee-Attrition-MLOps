@@ -13,7 +13,7 @@ import yaml
 from sqlalchemy import create_engine, text
 import mlflow
 from employee_attrition_mlops.config import (
-    DATABASE_URL_PYMSSQL, MLFLOW_TRACKING_URI, PRODUCTION_MODEL_NAME,
+    DATABASE_URL_PYMSSQL, DATABASE_URL_PYODBC, MLFLOW_TRACKING_URI, PRODUCTION_MODEL_NAME,
     DB_BATCH_PREDICTION_TABLE, DB_HISTORY_TABLE, EMPLOYEE_ID_COL, SNAPSHOT_DATE_COL
 )
 
@@ -295,9 +295,9 @@ elif selected_tab == "Monitoring":
     # --- Feature Drift Section ---
     st.subheader("Feature Drift Status")
     try:
-        feature_drift_url = f"{drift_api_url}/drift/feature/latest"
-        response = requests.get(feature_drift_url, timeout=10) # Add timeout
-        response.raise_for_status() 
+        feature_drift_url = "http://localhost:8001/drift/feature/latest"
+        response = requests.get(feature_drift_url) # Add timeout
+        # response.raise_for_status() 
         latest_feature_drift = response.json()
         api_accessible = True # Mark API as accessible if at least one call succeeds
         
@@ -322,9 +322,9 @@ elif selected_tab == "Monitoring":
     # --- Prediction Drift Section ---
     st.subheader("Prediction Drift Status")
     try:
-        prediction_drift_url = f"{drift_api_url}/drift/prediction/latest"
-        response = requests.get(prediction_drift_url, timeout=10) # Add timeout
-        response.raise_for_status() 
+        prediction_drift_url = "http://localhost:8001/drift/prediction/latest"
+        response = requests.get(prediction_drift_url) # Add timeout
+        # response.raise_for_status() 
         latest_prediction_drift = response.json()
         api_accessible = True # Mark API as accessible
         
@@ -338,7 +338,7 @@ elif selected_tab == "Monitoring":
 
     except requests.exceptions.RequestException as e:
         if not api_accessible: # Only show connection error if it hasn't succeeded before
-             st.error(f"Could not connect to Drift API ({drift_api_url}). Please ensure it is running.")
+             st.error(f"Could not connect to Drift API ({prediction_drift_url}). Please ensure it is running.")
         else:
              st.warning(f"Could not retrieve latest prediction drift data from API ({prediction_drift_url}): {e}")
     except Exception as e:

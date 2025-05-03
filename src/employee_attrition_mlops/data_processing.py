@@ -463,11 +463,11 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
         logger.info(f"Running in Docker, using pymssql driver for database connection.")
     else:
         # Use pyodbc locally
-        if not DATABASE_URL_PYODBC:
-            logger.error("DATABASE_URL_PYODBC is not configured. Cannot load data from DB.")
+        if not DATABASE_URL_PYMSSQL:
+            logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot load data from DB.")
             return None
             
-        connection_string = DATABASE_URL_PYODBC
+        connection_string = DATABASE_URL_PYMSSQL
         driver_name = "pyodbc"
         logger.info(f"Running locally, using pyodbc driver for database connection.")
 
