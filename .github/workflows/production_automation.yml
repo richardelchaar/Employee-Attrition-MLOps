@@ -18,8 +18,8 @@ on:
 jobs:
   unit-test:
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule'
+      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -82,7 +82,7 @@ jobs:
   #         tags: ${{ secrets.DOCKER_USERNAME }}/employee-attrition-2-mlflow-server:latest
   #         cache-from: type=gha
   #         cache-to: type=gha,mode=max
-      
+  #         
   #     - name: Build and push api image
   #       uses: docker/build-push-action@v5
   #       with:
@@ -113,7 +113,7 @@ jobs:
   #         cache-from: type=gha
   #         cache-to: type=gha,mode=max
 
-  run-pipeline:
+  run_pipeline:
     if: |
       github.event_name == 'schedule' || 
       github.event_name == 'workflow_dispatch' || 
@@ -149,15 +149,15 @@ jobs:
     #     echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
     #     echo "DRIFT_API_URL=http://drift-api:8000" >> $GITHUB_ENV
 
-     - name: Build and run services with Docker Compose
-        run: |
-          docker-compose up -d --build
-          sleep 15  # Give containers some time to start
-          docker ps  # Check running containers
-          if [ $? -ne 0 ]; then
-            echo "::error::Docker Compose failed to start."
-            exit 1
-          fi
+    - name: Build and run services with Docker Compose
+      run: |
+        docker-compose up -d --build
+        sleep 15  # Give containers some time to start
+        docker ps  # Check running containers
+        if [ $? -ne 0 ]; then
+          echo "::error::Docker Compose failed to start."
+          exit 1
+        fi
 
     # Step 1: Run batch prediction
     # Assuming batch_predict.py saves predictions and maybe features?
