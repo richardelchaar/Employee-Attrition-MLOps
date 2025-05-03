@@ -149,15 +149,15 @@ jobs:
     #     echo "DATABASE_URL_PYODBC=mssql+pyodbc://myuser:Password1!@employeeattrition2.database.windows.net/EmployeeAttrition?driver=ODBC+Driver+17+for+SQL+Server" >> $GITHUB_ENV
     #     echo "DRIFT_API_URL=http://drift-api:8000" >> $GITHUB_ENV
 
-    - name: Build and run services with Docker Compose
-      run: |
-        docker-compose up -d --build
-        sleep 15  # Give containers some time to start
-        docker ps  # Check running containers
-        if [ $? -ne 0 ]; then
-          echo "::error::Docker Compose failed to start."
-          exit 1
-        fi
+    # - name: Build and run services with Docker Compose
+    #   run: |
+    #     docker-compose up -d --build
+    #     sleep 15  # Give containers some time to start
+    #     docker ps  # Check running containers
+    #     if [ $? -ne 0 ]; then
+    #       echo "::error::Docker Compose failed to start."
+    #       exit 1
+    #     fi
 
     # Step 1: Run batch prediction
     # Assuming batch_predict.py saves predictions and maybe features?
