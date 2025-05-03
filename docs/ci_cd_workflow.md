@@ -9,7 +9,7 @@ The CI/CD pipeline is designed to run monthly checks for model drift and automat
 ## Workflow Diagram
 
 ```mermaid
-flowchart TD
+flowchart LR
     Start([Start]) --> Trigger{Trigger Type}
     Trigger -->|Monthly Schedule| UnitTest[Unit Tests]
     Trigger -->|Manual Run| UnitTest
@@ -35,6 +35,31 @@ flowchart TD
     style Fail fill:#FFB6C1
     style DriftResult fill:#FFD700
     style TestResult fill:#FFD700
+
+    %% Add subgraphs for better organization
+    subgraph "Initialization"
+        Start
+        Trigger
+        UnitTest
+        TestResult
+    end
+
+    subgraph "Pipeline Execution"
+        Pipeline
+        BatchPred
+        DriftCheck
+        DriftResult
+    end
+
+    subgraph "Model Management"
+        Retrain
+        DockerBuild
+    end
+
+    subgraph "Reporting"
+        CreateIssue
+        End
+    end
 ```
 
 ## Workflow Components
