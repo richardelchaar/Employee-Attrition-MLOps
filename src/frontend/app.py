@@ -300,17 +300,51 @@ elif selected_tab == "Monitoring":
         # response.raise_for_status() 
         latest_feature_drift = response.json()
         api_accessible = True # Mark API as accessible if at least one call succeeds
+
+        report_path = f"reports/feature_drift_results.json"
+        with open(report_path, 'r') as f:
+            latest_feature_drift = json.load(f)
         
         col1, col2, col3 = st.columns(3)
-        col1.metric("Dataset Drift Detected", "Yes" if latest_feature_drift.get("dataset_drift") else "No")
-        col2.metric("Share of Drifting Features", f"{latest_feature_drift.get('drift_share', 0)*100:.1f}%")
-        col3.metric("Number of Drifting Features", latest_feature_drift.get('n_drifted_features', 0))
+        col1.metric("Dataset Drift Detected", "Yes" if latest_feature_drift["drift_detected"] else "No")
+        col2.metric("Drift Score", latest_feature_drift["drift_score"])
+        col3.metric("Number of Drifting Features", len(latest_feature_drift["drifted_features"]))
 
-        if latest_feature_drift.get("drifted_features"):
-            st.write("Drifted Features:")
-            st.json(latest_feature_drift.get("drifted_features"))
+        # Drifted features
+        if latest_feature_drift["drifted_features"]:
+            st.markdown("#### Drifted Features")
+            st.write(", ".join(latest_feature_drift["drifted_features"]))
+
+        # Test results: Share of Drifted Columns
+        st.markdown("#### Share of Drifted Columns")
+        share_drift_details = latest_feature_drift["test_results"]["Share of Drifted Columns"]["details"]["features"]
+
+        # Create a table view
+        table_data = {
+            "Feature": [],
+            "Stat Test": [],
+            "Score": [],
+            "Threshold": [],
+            "Drift Detected": []
+        }
+
+        for feature, details in share_drift_details.items():
+            table_data["Feature"].append(feature)
+            table_data["Stat Test"].append(details["stattest"])
+            table_data["Score"].append(f"{details['score']:.2f}")
+            table_data["Threshold"].append(f"{details['threshold']:.2f}")
+            table_data["Drift Detected"].append("✅" if details["detected"] else "❌")
+
+        st.table(table_data)
+        # col1.metric("Dataset Drift Detected", "Yes" if latest_feature_drift.get("dataset_drift") else "No")
+        # col2.metric("Share of Drifting Features", f"{latest_feature_drift.get('drift_share', 0)*100:.1f}%")
+        # col3.metric("Number of Drifting Features", latest_feature_drift.get('n_drifted_features', 0))
+
+        # if latest_feature_drift.get("drifted_features"):
+        #     st.write("Drifted Features:")
+        #     st.json(latest_feature_drift.get("drifted_features"))
             
-        st.caption(f"Last check: {datetime.fromisoformat(latest_feature_drift.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S') if latest_feature_drift.get('timestamp') else 'N/A'}")
+        # st.caption(f"Last check: {datetime.fromisoformat(latest_feature_drift.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S') if latest_feature_drift.get('timestamp') else 'N/A'}")
 
     except requests.exceptions.RequestException as e:
         st.error(f"Could not retrieve latest feature drift data from API ({feature_drift_url}): {e}")
@@ -327,12 +361,38 @@ elif selected_tab == "Monitoring":
         # response.raise_for_status() 
         latest_prediction_drift = response.json()
         api_accessible = True # Mark API as accessible
+
+        report_path = f"reports/target_drift_results.json"
+        with open(report_path, 'r') as f:
+            latest_prediction_drift = json.load(f)
         
         col1, col2 = st.columns(2)
-        detected = latest_prediction_drift.get("prediction_drift_detected")
-        score = latest_prediction_drift.get("prediction_drift_score")
+        # detected = latest_prediction_drift.get("prediction_drift_detected")
+        # score = latest_prediction_drift.get("prediction_drift_score")
+        detected = latest_prediction_drift['drift_detected']
+        score = latest_prediction_drift['drift_score']
         col1.metric("Prediction Drift Detected", "Yes" if detected else ("No" if detected is False else "Unknown"))
-        col2.metric("Prediction Drift Score", f"{score:.4f}" if score is not None else "N/A")
+        col2.metric("Prediction Drift Score", f"{score}" if score is not None else "N/A")
+
+        share_drift_details = latest_prediction_drift["test_results"]["Share of Drifted Columns"]["details"]["features"]
+
+        # Create a table view
+        table_data = {
+            "Target": [],
+            "Stat Test": [],
+            "Score": [],
+            "Threshold": [],
+            "Drift Detected": []
+        }
+
+        for feature, details in share_drift_details.items():
+            table_data["Target"].append(feature)
+            table_data["Stat Test"].append(details["stattest"])
+            table_data["Score"].append(f"{details['score']:.2f}")
+            table_data["Threshold"].append(f"{details['threshold']:.2f}")
+            table_data["Drift Detected"].append("✅" if details["detected"] else "❌")
+
+        st.table(table_data)
         
         st.caption(f"Last check: {datetime.fromisoformat(latest_prediction_drift.get('timestamp')).strftime('%Y-%m-%d %H:%M:%S') if latest_prediction_drift.get('timestamp') else 'N/A'}")
 
