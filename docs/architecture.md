@@ -1,171 +1,323 @@
-# System Architecture
+# Architecture Documentation
 
-## Component Diagram
+This document provides detailed architectural diagrams and explanations for the Employee Attrition MLOps project.
+
+## System Overview
 
 ```mermaid
-graph TB
-    subgraph Frontend
-        Streamlit[Streamlit App]
-    end
-
-    subgraph Backend
-        FastAPI[FastAPI Service]
-        MLflow[MLflow Server]
-        DB[(Database)]
-    end
-
-    subgraph CI/CD
-        GitHub[GitHub Actions]
-        Docker[Docker Compose]
-    end
-
-    subgraph Monitoring
-        Drift[Drift Detection]
-        Retrain[Model Retraining]
-    end
-
-    %% Frontend to Backend
-    Streamlit -->|API Calls| FastAPI
-    Streamlit -->|Model Info| MLflow
-
-    %% Backend Components
-    FastAPI -->|Load Model| MLflow
-    FastAPI -->|Log Predictions| DB
-    MLflow -->|Store Artifacts| DB
-
-    %% CI/CD Flow
-    GitHub -->|Trigger| Docker
-    Docker -->|Deploy| FastAPI
-    Docker -->|Deploy| MLflow
-    Docker -->|Deploy| Streamlit
-
-    %% Monitoring Flow
-    Drift -->|Detect Changes| DB
-    Drift -->|Trigger| Retrain
-    Retrain -->|Update Model| MLflow
-    Retrain -->|Notify| GitHub
-
-    %% Styling
-    classDef frontend fill:#f9f,stroke:#333,stroke-width:2px
-    classDef backend fill:#bbf,stroke:#333,stroke-width:2px
-    classDef cicd fill:#bfb,stroke:#333,stroke-width:2px
-    classDef monitoring fill:#fbb,stroke:#333,stroke-width:2px
-
-    class Streamlit frontend
-    class FastAPI,MLflow,DB backend
-    class GitHub,Docker cicd
-    class Drift,Retrain monitoring
+graph TD
+    A[Data Sources] --> B[Data Pipeline]
+    B --> C[Training Pipeline]
+    C --> D[Model Registry]
+    D --> E[API Service]
+    E --> F[Frontend]
+    B --> G[Monitoring]
+    G --> H[Drift Detection]
+    H --> I[Retraining Trigger]
+    I --> C
+    C --> J[MLflow Tracking]
+    G --> J
+    E --> J
 ```
 
-## Data Flow
+The system follows a standard MLOps architecture with the following key components:
+- Data Pipeline: Handles data ingestion and preprocessing
+- Training Pipeline: Manages model development and validation
+- Model Registry: Stores and versions models
+- API Service: Serves predictions
+- Frontend: Provides user interface
+- Monitoring: Tracks system health and model performance
+- MLflow: Centralizes experiment tracking and artifacts
+
+## End-to-End Workflow
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Streamlit
-    participant FastAPI
-    participant MLflow
-    participant DB
-    participant GitHub
+    participant DB as Database
+    participant DP as Data Pipeline
+    participant TP as Training Pipeline
+    participant MR as Model Registry
+    participant API as API Service
+    participant MON as Monitoring
+    participant GH as GitHub Actions
+    
+    DB->>DP: Load Raw Data
+    DP->>DP: Preprocess
+    DP->>TP: Processed Data
+    TP->>TP: HPO & Training
+    TP->>TP: Validation
+    TP->>MR: Log to MLflow
+    MR->>MR: Stage Model
+    MR->>API: Deploy Model
+    API->>MON: Log Predictions
+    MON->>MON: Detect Drift
+    MON->>GH: Trigger Retraining
+    GH->>TP: Start Pipeline
+```
 
-    %% User Interaction
-    User->>Streamlit: Submit Employee Data
-    Streamlit->>FastAPI: POST /predict
-    FastAPI->>MLflow: Load Model
-    MLflow-->>FastAPI: Return Model
-    FastAPI->>FastAPI: Make Prediction
-    FastAPI->>DB: Log Prediction
-    FastAPI-->>Streamlit: Return Prediction
-    Streamlit-->>User: Display Result
+The workflow follows these steps:
+1. Data ingestion from database
+2. Preprocessing and validation
+3. Hyperparameter optimization and training
+4. Model validation and logging to MLflow
+5. Staging and deployment
+6. Monitoring and drift detection
+7. Automated retraining via GitHub Actions
 
-    %% Monitoring Flow
-    loop Daily
-        GitHub->>DB: Run Drift Detection
-        alt Drift Detected
-            DB->>GitHub: Trigger Retraining
-            GitHub->>MLflow: Train New Model
-            MLflow->>DB: Store Model
-            GitHub->>FastAPI: Deploy New Model
-        end
+## Training Pipeline
+
+```mermaid
+graph LR
+    A[Data] --> B[HPO]
+    B --> C[Training]
+    C --> D[Validation]
+    D --> E[MLflow]
+    E --> F[Staging]
+    
+    subgraph "Pipeline Steps"
+    B
+    C
+    D
     end
 ```
+
+The training pipeline (`optimize_train_select.py`) includes:
+1. Hyperparameter Optimization
+   - Bayesian optimization
+   - Cross-validation
+   - Performance metrics
+2. Model Training
+   - Best hyperparameters
+   - Full training set
+   - Model serialization
+3. Validation
+   - Holdout set evaluation
+   - Fairness assessment
+   - Performance metrics
+4. MLflow Integration
+   - Parameter logging
+   - Metric tracking
+   - Artifact storage
+5. Staging
+   - Model registration
+   - Version control
+   - Quality checks
 
 ## Deployment Architecture
 
 ```mermaid
-graph TB
-    subgraph DockerContainers
-        direction TB
-        FastAPI[FastAPI Container]
-        MLflow[MLflow Container]
-        Streamlit[Streamlit Container]
+graph TD
+    A[Docker Compose] --> B[API Container]
+    A --> C[Frontend Container]
+    A --> D[MLflow Container]
+    
+    B --> E[Database]
+    C --> B
+    D --> F[Artifact Storage]
+    
+    subgraph "Services"
+    B
+    C
+    D
     end
-
-    subgraph ExternalServices
-        GitHub[GitHub Actions]
-        DB[(Database)]
-    end
-
-    subgraph Volumes
-        MLruns[MLruns Volume]
-        MLartifacts[MLartifacts Volume]
-    end
-
-    %% Container Connections
-    FastAPI -->|Load Model| MLflow
-    FastAPI -->|Log Data| DB
-    Streamlit -->|API Calls| FastAPI
-    Streamlit -->|Model Info| MLflow
-
-    %% Volume Mounts
-    MLflow -->|Store Runs| MLruns
-    MLflow -->|Store Artifacts| MLartifacts
-
-    %% External Connections
-    GitHub -->|Deploy| DockerContainers
-
-    %% Styling
-    classDef container fill:#bbf,stroke:#333,stroke-width:2px
-    classDef external fill:#fbb,stroke:#333,stroke-width:2px
-    classDef volume fill:#bfb,stroke:#333,stroke-width:2px
-
-    class FastAPI,MLflow,Streamlit container
-    class GitHub,DB external
-    class MLruns,MLartifacts volume
 ```
 
-## Component Descriptions
+The deployment architecture:
+1. Uses Docker Compose for orchestration
+2. Runs separate containers for each service
+3. Connects to external databases
+4. Manages artifact storage
+5. Handles service communication
 
-### Frontend (Streamlit)
-- Interactive web interface for predictions
-- Real-time model information display
-- User-friendly forms for data input
+## Monitoring Loop
 
-### Backend (FastAPI)
-- RESTful API for predictions
-- Model loading and inference
-- Prediction logging
-- Health checks
+```mermaid
+graph TD
+    A[API Predictions] --> B[Drift Detection]
+    B --> C[Statistical Tests]
+    C --> D[Alert System]
+    D --> E[GitHub Actions]
+    E --> F[Retraining]
+    
+    subgraph "Monitoring"
+    B
+    C
+    D
+    end
+```
 
-### MLflow Server
-- Model versioning and tracking
-- Experiment management
-- Artifact storage
-- Model registry
+The monitoring loop:
+1. Collects prediction data
+2. Performs drift detection
+3. Runs statistical tests
+4. Generates alerts
+5. Triggers retraining via GitHub Actions
+6. Updates model in production
 
-### Database
-- Stores historical data
-- Logs predictions
-- Tracks model performance
+## CI/CD Pipeline
 
-### CI/CD Pipeline
-- Automated testing
-- Drift detection
-- Model retraining
-- Deployment automation
+```mermaid
+graph LR
+    A[Code Push] --> B[GitHub Actions]
+    B --> C[Lint/Test]
+    C --> D[Build Images]
+    D --> E[Deploy Staging]
+    E --> F[Run Tests]
+    F --> G[Promote to Prod]
+    G --> H[Update API]
+    
+    subgraph "Quality Gates"
+    C
+    F
+    end
+```
 
-### Monitoring
-- Data drift detection
-- Model performance monitoring
-- Automated retraining triggers
-- Health checks 
+The CI/CD pipeline includes:
+1. Code push triggers GitHub Actions
+2. Linting and testing
+3. Docker image building
+4. Staging deployment
+5. Integration testing
+6. Production promotion
+7. API update
+
+Quality gates ensure:
+- Code quality standards
+- Test coverage requirements
+- Performance benchmarks
+- Security checks
+
+## API Architecture
+
+```mermaid
+graph TD
+    A[FastAPI] --> B[Model Loader]
+    B --> C[Prediction Service]
+    C --> D[Monitoring]
+    D --> E[MLflow]
+    
+    F[Request] --> A
+    A --> G[Response]
+    
+    subgraph "Services"
+    B
+    C
+    D
+    end
+```
+
+The API architecture includes:
+- FastAPI application server
+- Model loading service
+- Prediction service
+- Monitoring integration
+- MLflow tracking
+
+## Monitoring Architecture
+
+```mermaid
+graph TD
+    A[Data Stream] --> B[Drift Detection]
+    B --> C[Statistical Tests]
+    C --> D[Alert System]
+    D --> E[Retraining Trigger]
+    
+    F[Reference Data] --> B
+    G[Current Data] --> B
+    
+    subgraph "Metrics"
+    H[Feature Drift]
+    I[Prediction Drift]
+    J[Performance Metrics]
+    end
+    
+    B --> H
+    B --> I
+    B --> J
+```
+
+The monitoring system:
+1. Compares current data to reference data
+2. Performs statistical tests for drift
+3. Generates alerts when thresholds are exceeded
+4. Triggers retraining when necessary
+5. Tracks multiple metrics types
+
+## Artifact Flow
+
+```mermaid
+graph LR
+    A[Training] --> B[MLflow]
+    C[Validation] --> B
+    D[Monitoring] --> B
+    E[API] --> B
+    
+    B --> F[Model Artifacts]
+    B --> G[Metrics]
+    B --> H[Plots]
+    B --> I[Reports]
+    
+    subgraph "MLflow Storage"
+    F
+    G
+    H
+    I
+    end
+```
+
+Artifacts are stored in MLflow:
+- Model files and configurations
+- Training and validation metrics
+- Performance plots and visualizations
+- Monitoring reports
+- API usage statistics
+
+## Security Architecture
+
+```mermaid
+graph TD
+    A[API Gateway] --> B[Authentication]
+    B --> C[Authorization]
+    C --> D[Services]
+    
+    E[Request] --> A
+    D --> F[Response]
+    
+    subgraph "Security Layers"
+    B
+    C
+    end
+```
+
+Security measures include:
+- API gateway for request routing
+- Authentication service
+- Authorization checks
+- Secure service communication
+- Data encryption
+
+## Scaling Architecture
+
+```mermaid
+graph TD
+    A[Load Balancer] --> B[API Instances]
+    B --> C[Database]
+    B --> D[Cache]
+    
+    subgraph "Scaling Group"
+    B1[Instance 1]
+    B2[Instance 2]
+    B3[Instance 3]
+    end
+    
+    B --> B1
+    B --> B2
+    B --> B3
+```
+
+Scaling considerations:
+- Load balancing for API instances
+- Database connection pooling
+- Caching for performance
+- Horizontal scaling capability
+- Resource monitoring 
