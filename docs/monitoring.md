@@ -1,69 +1,141 @@
 # Model Monitoring and Retraining
 
-This document describes the automated monitoring and retraining process for the Employee Attrition model.
+This document describes the automated monitoring and retraining process for the Employee Attrition model, including the overall strategy, drift detection methods, baseline generation, and retraining triggers.
 
 ## Automation Schedule
 
 ### Monthly Production Workflow
-The complete production workflow runs automatically on the 1st of every month at 2:00 AM UTC. This workflow includes:
+The complete production workflow runs automatically on the 1st of every month at midnight UTC. This workflow includes:
 
-1. **Data Loading and Cleaning**
-   - Fetches the latest employee data snapshot
-   - Cleans and preprocesses the data
-   - Validates data quality
+1. **Unit Testing and Linting**
+   - Runs pytest for all test cases
+   - Performs code linting (black, isort, flake8, mypy)
+   - Ensures code quality before pipeline execution
 
-2. **Drift Detection**
+2. **Pipeline Execution**
+   - Builds and runs services with Docker Compose
+   - Executes batch prediction
+   - Performs drift detection
+   - Triggers retraining if needed
+
+3. **Drift Detection**
    - Compares current data against reference dataset
    - Calculates drift metrics for all features
    - Generates drift report
+   - Creates GitHub issue with results
 
-3. **Model Retraining (if needed)**
+4. **Model Retraining (if needed)**
    - Triggered if drift exceeds thresholds
    - Optimizes hyperparameters
    - Trains new model
    - Evaluates performance
 
-4. **Batch Prediction**
-   - Uses latest model (either existing or newly trained)
-   - Generates predictions for all employees
-   - Stores results in database
+5. **Docker Image Management**
+   - Builds and pushes Docker images if drift detected
+   - Updates MLflow server image
+   - Updates API image
+   - Updates frontend image
+   - Updates drift API image
 
-### Daily Monitoring
-- Drift detection runs daily via GitHub Actions
-- Serves as early warning system
-- Does not trigger retraining or batch prediction
-- Results are logged for trend analysis
+### Manual Triggering
+The workflow can also be triggered manually through GitHub Actions:
+1. Go to the "Actions" tab in the repository
+2. Select "Monthly MLOps Pipeline"
+3. Click "Run workflow"
 
-## Model Monitoring
+## Monitoring Strategy
 
-### Drift Detection
+### Types of Drift
+- **Feature Drift**: Changes in feature distributions using Evidently's statistical tests
+- **Prediction Drift**: Changes in prediction distributions and performance metrics
+- **Concept Drift**: Changes in feature-target relationship
 
-The system automatically monitors for data drift using the following process:
+### Drift Detection Implementation
+The system uses Evidently's statistical tests for drift detection:
 
-1. **Scheduled Monitoring**: 
-   - Runs daily via GitHub Actions
-   - Configured in `.github/workflows/production_automation.yml`
-   - Compares current data against the reference dataset
+1. **Feature Drift Detection**
+   ```python
+   from monitoring.drift_detection import DriftDetector
+   
+   detector = DriftDetector(drift_threshold=0.05)
+   drift_detected, drift_score, drifted_features = detector.detect_drift(
+       reference_data=reference_data,
+       current_data=current_data
+   )
+   ```
 
-2. **Drift Metrics**:
-   - Monitors numerical features for statistical drift
-   - Key features monitored include:
-     - Age
-     - MonthlyIncome
-     - YearsAtCompany
-     - Other numerical features
+2. **Prediction Drift Detection**
+   ```python
+   drift_detected, drift_score = detector.detect_prediction_drift(
+       reference_data=reference_data,
+       current_data=current_data,
+       prediction_column="prediction"
+   )
+   ```
 
-3. **Alerting**:
-   - Creates GitHub issues automatically when drift is detected
-   - Issues include:
-     - List of drifted features
-     - Drift magnitude
-     - Recommended actions
+### Thresholds and Alerts
+
+1. **Drift Thresholds**
+   - Default threshold: 0.05 (5%)
+   - Feature drift: Tested per feature using Evidently's statistical tests
+   - Prediction drift: Monitored using distribution comparison
+   - Overall drift: Share of drifted features
+
+2. **Alert System**
+   - Automatic GitHub issue creation with:
+     - Feature drift results (drift detected, drift share, drifted features)
+     - Prediction drift results (drift detected, drift score)
+     - Retraining status
+     - Batch prediction summary
+   - MLflow metrics logging:
+     - `drift_detected`: Binary indicator
+     - `drift_score`: Overall drift score
+     - `n_drifted_features`: Number of drifted features
+     - `drifted_features`: List of drifted features
+
+## Model Retraining and Promotion
+
+### Automated Retraining Process
+When drift is detected:
+1. GitHub Actions workflow automatically triggers retraining
+2. New model is trained and evaluated
+3. Results are logged to MLflow
+4. GitHub issue is updated with retraining results
+5. Docker images are rebuilt and pushed if drift detected
+
+### Model Promotion
+Models are promoted to production through a controlled process:
+- PR with "model-promotion" label
+- Approval and merge triggers automated promotion
+- Manual promotion via script is also supported
+
+### Monitoring MLflow
+- View model versions and their stages
+- Compare model metrics
+- Analyze drift reports
+- Track model lineage
+
+## Best Practices
+- Regular monitoring and review of drift detection results
+- Keep reference data up to date
+- Document all model promotions
+- Maintain test coverage for new models
+- Use PR templates for model updates
+- Include performance metrics in PRs
+- Follow code review guidelines
+
+## Troubleshooting
+- Verify MLflow server is running
+- Check reference dataset availability
+- Review drift thresholds in configuration
+- Ensure correct run ID/version for promotion
+- Confirm environment variables and dependencies
+- Check Docker service status
+- Verify GitHub Actions workflow status
+
+## Example Usage
 
 ### Manual Monitoring
-
-You can manually check for drift using:
-
 ```bash
 # Normal drift check
 python scripts/drift_detection.py
@@ -72,121 +144,29 @@ python scripts/drift_detection.py
 python scripts/drift_detection.py --simulate-drift
 ```
 
-View detailed drift reports in MLflow UI:
+### MLflow UI
 1. Start MLflow server: `mlflow server --host 127.0.0.1 --port 5001`
 2. Open `http://127.0.0.1:5001` in your browser
 3. Navigate to the latest run to view drift metrics
 
-## Model Retraining and Promotion
+### Manual Promotion
+```bash
+# Promote latest staging model
+python scripts/promote_model.py
 
-### Automated Retraining Process
+# Promote specific version
+python scripts/promote_model.py --model-version <version>
 
-When drift is detected:
-1. Review the GitHub issue created by the drift detection workflow
-2. Analyze the drift report in MLflow
-3. If retraining is needed:
-   - Create a new branch for model updates
-   - Run retraining script
-   - Review model performance metrics
-   - Create a PR with the "model-promotion" label
-
-### Model Promotion
-
-Models are promoted to production through a controlled process:
-
-1. **Via Pull Request**:
-   - Create PR with "model-promotion" label
-   - Include run ID in PR description: `Promoting model run: <run_id>`
-   - Get PR approved
-   - Automated promotion occurs on PR merge
-
-2. **Manual Promotion**:
-   ```bash
-   # Promote latest staging model
-   python scripts/promote_model.py
-
-   # Promote specific version
-   python scripts/promote_model.py --model-version <version>
-
-   # Promote by run ID
-   python scripts/promote_model.py --run-id <run_id>
-   ```
-
-### Monitoring MLflow
-
-Access the MLflow UI to:
-- View model versions and their stages
-- Compare model metrics
-- Analyze drift reports
-- Track model lineage
-
-URL: `http://127.0.0.1:5001`
-
-## Best Practices
-
-1. **Regular Monitoring**:
-   - Review drift detection results daily
-   - Analyze trends in feature drift
-   - Document significant changes
-
-2. **Model Updates**:
-   - Keep reference data up to date
-   - Document all model promotions
-   - Maintain test coverage for new models
-
-3. **Workflow Management**:
-   - Use PR templates for model updates
-   - Include performance metrics in PRs
-   - Follow code review guidelines
-
-## Troubleshooting
-
-Common issues and solutions:
-
-1. **Drift Detection Issues**:
-   - Verify MLflow server is running
-   - Check reference dataset availability
-   - Review drift thresholds in configuration
-
-2. **Promotion Failures**:
-   - Ensure correct run ID/version
-   - Verify MLflow connection
-   - Check GitHub Actions logs
-
-3. **Environment Setup**:
-   - Confirm environment variables
-   - Verify dependencies installation
-   - Check MLflow server status
-
-### Baseline Profiles
-- Reference data profiles are stored in MLflow as artifacts
-- Statistical profiles include:
-  - Feature distributions
-  - Missing value patterns
-  - Category distributions
-- Access baseline profiles via MLflow UI under artifacts
-
-### Retraining Triggers
-
-Automated retraining is triggered when:
-1. **Feature Drift Thresholds**:
-   - More than 30% of features show drift
-   - Any critical feature (Age, MonthlyIncome, YearsAtCompany) shows significant drift (p-value < 0.01)
-
-2. **Scheduled Triggers**:
-   - Daily drift detection via GitHub Actions
-   - Monthly scheduled retraining (fallback mechanism)
-
-3. **Manual Triggers**:
-   - Through GitHub Actions workflow dispatch
-   - Via local script execution
+# Promote by run ID
+python scripts/promote_model.py --run-id <run_id>
+```
 
 ## Model Governance
 
 ### Retraining Decision Process
 
 1. **Automated Analysis**:
-   - Drift detection runs daily
+   - Drift detection runs monthly
    - Thresholds are checked automatically
    - Results logged to MLflow
 
@@ -241,6 +221,7 @@ The following metrics are tracked:
    - Model training
    - Performance evaluation
    - Results logging to MLflow
+   - Docker image updates
 
 3. **Manual Review**:
    - Performance comparison

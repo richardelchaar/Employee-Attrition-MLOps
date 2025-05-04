@@ -1057,3 +1057,22 @@ Note: All commands assume you're in the project root directory and have Poetry i
 ## License
 
 MIT
+
+## Documentation Structure
+
+### Core Documentation
+- [Architecture](docs/architecture.md): System design, components, and workflows
+- [Getting Started](docs/getting_started.md): Installation and setup guide
+- [Setup Details](docs/setup_details.md): Detailed configuration instructions
+- [MLflow Usage](docs/mlflow_usage.md): Experiment tracking and model management
+- [Monitoring](docs/monitoring.md): Drift detection and retraining workflows
+- [API Documentation](docs/api_documentation.md): Endpoint reference and usage examples
+
+### MLOps Components
+- [MLOps Workflow](docs/mlops_workflow_guide.md): End-to-end MLOps pipeline
+- [CI/CD Workflow](docs/ci_cd_workflow.md): Continuous integration and deployment
+- [Drift Detection Guide](docs/drift_detection_guide.md): Drift detection implementation
+- [Responsible AI](docs/responsible_ai.md): Fairness assessment and bias mitigation
+
+### Reference Materials
+- [Troubleshooting](docs/troubleshooting.md): Common issues and solutions

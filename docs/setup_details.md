@@ -157,34 +157,79 @@ This document provides in-depth setup instructions and troubleshooting guides fo
 
 1. **Install Docker Desktop**
    ```bash
+   # For macOS
    brew install --cask docker
-   ```
-
-2. **Verify Installation**
-   ```bash
+   
+   # Verify installation
    docker --version
    docker-compose --version
    ```
 
-3. **Common Docker Issues**
+2. **Docker Services**
+   The project uses four Docker services:
+   - `mlflow-server`: MLflow tracking server (port 5001)
+   - `api`: FastAPI prediction service (port 8000)
+   - `drift-api`: Drift detection service (port 8001)
+   - `frontend`: Streamlit frontend (port 8501)
 
-   **Issue**: Permission denied
+3. **Environment Variables**
+   Required environment variables for Docker services:
    ```bash
-   # Add user to docker group
-   sudo usermod -aG docker $USER
+   # Database connections
+   DATABASE_URL_PYMSSQL=mssql+pymssql://user:pass@host/db
+   DATABASE_URL_PYODBC=mssql+pyodbc://user:pass@host/db?driver=ODBC+Driver+17+for+SQL+Server
    
-   # Restart Docker
-   sudo systemctl restart docker
+   # MLflow tracking
+   MLFLOW_TRACKING_URI=http://mlflow-server:5001
+   
+   # Optional port configurations
+   API_PORT=8000
+   DRIFT_PORT=8001
+   FRONTEND_PORT=8501
    ```
 
-   **Issue**: Port conflicts
+4. **Volume Mounts**
+   The services use the following volume mounts:
+   - MLflow server:
+     - `./mlruns:/mlflow_runs`
+     - `./mlartifacts:/mlflow_artifacts`
+   - Drift API:
+     - `./reference_data:/app/reference_data`
+     - `./reference_predictions:/app/reference_predictions`
+     - `./reports:/app/reports`
+   - API and Frontend:
+     - Source code mounted for development
+
+5. **Health Checks**
+   Each service includes health checks:
+   - MLflow server: HTTP check on port 5001
+   - API: Health endpoint check on port 8000
+   - Drift API: Health endpoint check on port 8000
+   - Frontend: Depends on API and Drift API health
+
+6. **Common Docker Issues**
    ```bash
-   # Check used ports
-   lsof -i :8000
+   # Check service status
+   docker-compose ps
    
-   # Stop conflicting services
-   sudo lsof -t -i :8000 | xargs kill -9
+   # View logs
+   docker-compose logs -f
+   
+   # Rebuild services
+   docker-compose build --no-cache
+   docker-compose up -d
+   
+   # Check specific service logs
+   docker-compose logs -f api
+   docker-compose logs -f drift-api
+   docker-compose logs -f mlflow-server
+   docker-compose logs -f frontend
    ```
+
+7. **Network Configuration**
+   - All services are connected via a bridge network named `app_network`
+   - Services can communicate using their service names as hostnames
+   - Port mappings are configured for external access
 
 ### Database Setup
 

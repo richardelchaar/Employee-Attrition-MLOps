@@ -58,15 +58,20 @@ curl http://localhost:5001/health
 
 # If down, restart server
 poetry run mlflow ui --port 5001
+
+# Verify tracking URI
+echo $MLFLOW_TRACKING_URI  # Should be http://mlflow-server:5001 in Docker
 ```
 
 #### Artifact Storage
 ```bash
 # Check artifact storage permissions
 ls -la mlruns/
+ls -la mlartifacts/
 
 # Fix permissions if needed
 chmod -R 755 mlruns/
+chmod -R 755 mlartifacts/
 ```
 
 ### 4. Docker Issues
@@ -87,12 +92,29 @@ docker-compose up -d
 #### Port Conflicts
 ```bash
 # Check port usage
-lsof -i :8000
-lsof -i :8501
-lsof -i :5001
+lsof -i :8000  # API
+lsof -i :8001  # Drift API
+lsof -i :8501  # Frontend
+lsof -i :5001  # MLflow
 
 # Kill conflicting processes
 kill -9 <PID>
+```
+
+#### Volume Mount Issues
+```bash
+# Check volume mounts
+docker-compose config
+
+# Verify required directories exist
+ls -la mlruns/
+ls -la mlartifacts/
+ls -la reference_data/
+ls -la reference_predictions/
+ls -la reports/
+
+# Fix permissions if needed
+chmod -R 755 mlruns/ mlartifacts/ reference_data/ reference_predictions/ reports/
 ```
 
 ### 5. API Issues

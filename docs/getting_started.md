@@ -45,20 +45,50 @@ This guide will help you set up and run the Employee Attrition MLOps project.
 
 ### Using Docker Compose
 
-1. **Build and start all services**
+1. **Start All Services**
    ```bash
+   # Build and start all services
    docker-compose up --build
+   
+   # Or start in detached mode
+   docker-compose up -d --build
    ```
 
-2. **Access the services**
-   - API: http://localhost:8000
+2. **Access Services**
    - Frontend: http://localhost:8501
+   - API: http://localhost:8000
+   - Drift API: http://localhost:8001
    - MLflow: http://localhost:5001
 
 3. **Docker Services Overview**
-   - **API (FastAPI)**: Backend service that serves predictions and model information
-   - **Frontend (Streamlit)**: Interactive dashboard for making predictions and viewing model info
-   - **MLflow Server**: Tracks experiments, manages model versions, and stores artifacts
+   - **MLflow Server**: Model tracking and registry
+   - **API**: Prediction service with FastAPI
+   - **Drift API**: Drift detection service
+   - **Frontend**: Streamlit interface
+
+4. **Common Commands**
+   ```bash
+   # View running services
+   docker-compose ps
+   
+   # View logs
+   docker-compose logs -f
+   
+   # Restart services
+   docker-compose restart
+   
+   # Stop all services
+   docker-compose down
+   
+   # Rebuild specific service
+   docker-compose build api
+   ```
+
+5. **Development Workflow**
+   - Source code is mounted as volumes for live updates
+   - Changes to Python files trigger automatic reload
+   - MLflow artifacts persist between restarts
+   - Reference data and predictions are stored in mounted volumes
 
 ### Running Locally
 

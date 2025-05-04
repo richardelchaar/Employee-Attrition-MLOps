@@ -2,39 +2,36 @@
 
 ## Quick Links
 
-- [Project Overview](index.md)
 - [Architecture](architecture.md)
 - [Setup Guide](setup_details.md)
+- [Getting Started](getting_started.md)
 - [MLflow Usage](mlflow_usage.md)
 - [Responsible AI](responsible_ai.md)
-- [Monitoring Strategy](monitoring_strategy.md)
+- [Monitoring](monitoring.md)
 - [API Documentation](api_documentation.md)
 - [Troubleshooting Guide](troubleshooting.md)
+- [MLOps Workflow](mlops_workflow_guide.md)
+- [CI/CD Workflow](ci_cd_workflow.md)
+- [Drift Detection Guide](drift_detection_guide.md)
 
 ## Documentation Structure
 
 ### 1. Core Documentation
-- **Project Overview**: High-level project description, objectives, and features
-- **Architecture**: System design, components, and workflows
-- **Setup Guide**: Detailed installation and configuration instructions
-- **API Documentation**: Endpoint reference and usage examples
+- **Architecture**: [System design, components, and workflows](architecture.md)
+- **Setup Guide**: [Detailed installation and configuration](setup_details.md)
+- **Getting Started**: [Quick start guide](getting_started.md)
+- **API Documentation**: [Endpoint reference and usage](api_documentation.md)
 
 ### 2. MLOps Components
-- **MLflow Usage**: Experiment tracking and model management
-- **Monitoring Strategy**: Drift detection and retraining workflows
-- **Responsible AI**: Fairness assessment and bias mitigation
+- **MLflow Usage**: [Experiment tracking and model management](mlflow_usage.md)
+- **Monitoring**: [Drift detection and retraining](monitoring.md)
+- **MLOps Workflow**: [End-to-end pipeline guide](mlops_workflow_guide.md)
+- **CI/CD Workflow**: [Continuous integration and deployment](ci_cd_workflow.md)
+- **Drift Detection**: [Implementation guide](drift_detection_guide.md)
+- **Responsible AI**: [Fairness assessment and bias mitigation](responsible_ai.md)
 
-### 3. Development Guides
-- **Development Workflow**: Branching strategy and guidelines
-- **Testing**: Test suite execution and coverage
-- **Deployment**: CI/CD pipeline and containerization
-- **Versioning**: Semantic versioning and release process
-
-### 4. Reference Materials
-- **Troubleshooting**: Common issues and solutions
-- **Best Practices**: Development and deployment guidelines
-- **Glossary**: Key terms and concepts
-- **FAQ**: Frequently asked questions
+### 3. Reference Materials
+- **Troubleshooting**: [Common issues and solutions](troubleshooting.md)
 
 ## Getting Started
 
@@ -108,8 +105,8 @@
 ## Support
 
 - [GitHub Issues](https://github.com/BTCJULIAN/Employee-Attrition-2/issues)
-- [Documentation](docs/)
-- [Troubleshooting Guide](docs/troubleshooting.md)
+- [Documentation](../README.md)
+- [Troubleshooting Guide](troubleshooting.md)
 
 ## License
 
