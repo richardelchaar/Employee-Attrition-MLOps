@@ -1,6 +1,6 @@
-# Architecture Documentation
+# System Architecture
 
-This document provides detailed architectural diagrams and explanations for the Employee Attrition MLOps project.
+This document describes the architecture of the Employee Attrition MLOps system.
 
 ## System Overview
 
@@ -18,6 +18,28 @@ graph TD
     C --> J[MLflow Tracking]
     G --> J
     E --> J
+    
+    subgraph "Security"
+    K[API Gateway]
+    L[Authentication]
+    M[Authorization]
+    end
+    
+    E --> K
+    K --> L
+    L --> M
+    
+    subgraph "MLflow Storage"
+    N[Model Artifacts]
+    O[Metrics]
+    P[Plots]
+    Q[Reports]
+    end
+    
+    J --> N
+    J --> O
+    J --> P
+    J --> Q
 ```
 
 The system follows a standard MLOps architecture with the following key components:
@@ -28,6 +50,83 @@ The system follows a standard MLOps architecture with the following key componen
 - Frontend: Provides user interface
 - Monitoring: Tracks system health and model performance
 - MLflow: Centralizes experiment tracking and artifacts
+- Security: API gateway, authentication, and authorization layers
+
+## System Components
+
+### 1. Core Components
+
+#### API Service (`src/employee_attrition_mlops/`)
+- FastAPI-based prediction service
+- Model serving and inference
+- Health monitoring endpoints
+- Drift detection API integration
+- Database connectivity for predictions
+
+#### Frontend (`src/frontend/`)
+- Streamlit-based user interface
+- Real-time predictions
+- Model information display
+- Drift detection reports viewer
+- Workforce overview dashboard
+
+#### Monitoring (`src/monitoring/`)
+- Drift detection implementation
+- Performance monitoring
+- Alert generation
+- Statistical testing
+- Reference data management
+
+#### Utilities (`src/utils/`)
+- Common utility functions
+- Data processing helpers
+- Logging utilities
+- Testing helpers
+- Database utilities
+
+#### Configuration (`src/config/`)
+- Environment configuration
+- Database settings
+- MLflow configuration
+- API settings
+- Drift detection parameters
+
+### 2. Infrastructure Components
+
+#### Docker Services
+- Main API service (`Dockerfile`)
+- Frontend service (`Dockerfile.frontend`)
+- Drift detection service (`Dockerfile.drift`)
+- MLflow server (`Dockerfile.mlflow`)
+
+#### MLflow Integration
+- Experiment tracking (`mlruns/`)
+- Model artifacts (`mlartifacts/`)
+- Model registry
+- Metric tracking
+- Drift detection metrics
+
+#### Reference Data
+- Baseline data (`reference_data/`)
+- Reference predictions (`reference_predictions/`)
+- Drift detection reports (`reports/`)
+- Model artifacts (`mlartifacts/`)
+
+### 3. Automation Components
+
+#### GitHub Actions
+- Production automation
+- Drift detection scheduling
+- Model promotion
+- Testing and validation
+- MLflow metadata maintenance
+
+#### Logging
+- Production logs (`production_automation.log`)
+- Test logs (`test_production_automation.log`)
+- MLflow tracking
+- Application logs
+- Drift detection logs
 
 ## End-to-End Workflow
 
@@ -81,7 +180,7 @@ graph LR
     end
 ```
 
-The training pipeline (`optimize_train_select.py`) includes:
+The training pipeline includes:
 1. Hyperparameter Optimization
    - Bayesian optimization
    - Cross-validation
@@ -103,6 +202,22 @@ The training pipeline (`optimize_train_select.py`) includes:
    - Version control
    - Quality checks
 
+## System Architecture Diagram
+
+```mermaid
+graph TD
+    A[Frontend] --> B[API Service]
+    B --> C[MLflow]
+    B --> D[Drift Detection]
+    D --> E[Reference Data]
+    D --> F[Reports]
+    C --> G[Model Registry]
+    C --> H[Artifacts]
+    I[GitHub Actions] --> B
+    I --> D
+    I --> C
+```
+
 ## Deployment Architecture
 
 ```mermaid
@@ -120,6 +235,20 @@ graph TD
     C
     D
     end
+    
+    subgraph "Scaling"
+    G[Load Balancer]
+    H[Instance 1]
+    I[Instance 2]
+    J[Instance 3]
+    end
+    
+    G --> H
+    G --> I
+    G --> J
+    H --> B
+    I --> B
+    J --> B
 ```
 
 The deployment architecture:
@@ -128,90 +257,7 @@ The deployment architecture:
 3. Connects to external databases
 4. Manages artifact storage
 5. Handles service communication
-
-## Monitoring Loop
-
-```mermaid
-graph TD
-    A[API Predictions] --> B[Drift Detection]
-    B --> C[Statistical Tests]
-    C --> D[Alert System]
-    D --> E[GitHub Actions]
-    E --> F[Retraining]
-    
-    subgraph "Monitoring"
-    B
-    C
-    D
-    end
-```
-
-The monitoring loop:
-1. Collects prediction data
-2. Performs drift detection
-3. Runs statistical tests
-4. Generates alerts
-5. Triggers retraining via GitHub Actions
-6. Updates model in production
-
-## CI/CD Pipeline
-
-```mermaid
-graph LR
-    A[Code Push] --> B[GitHub Actions]
-    B --> C[Lint/Test]
-    C --> D[Build Images]
-    D --> E[Deploy Staging]
-    E --> F[Run Tests]
-    F --> G[Promote to Prod]
-    G --> H[Update API]
-    
-    subgraph "Quality Gates"
-    C
-    F
-    end
-```
-
-The CI/CD pipeline includes:
-1. Code push triggers GitHub Actions
-2. Linting and testing
-3. Docker image building
-4. Staging deployment
-5. Integration testing
-6. Production promotion
-7. API update
-
-Quality gates ensure:
-- Code quality standards
-- Test coverage requirements
-- Performance benchmarks
-- Security checks
-
-## API Architecture
-
-```mermaid
-graph TD
-    A[FastAPI] --> B[Model Loader]
-    B --> C[Prediction Service]
-    C --> D[Monitoring]
-    D --> E[MLflow]
-    
-    F[Request] --> A
-    A --> G[Response]
-    
-    subgraph "Services"
-    B
-    C
-    D
-    end
-```
-
-The API architecture includes:
-- FastAPI application server
-- Model loading service
-- Prediction service
-- Monitoring integration
-- MLflow tracking
+6. Supports horizontal scaling with load balancing
 
 ## Monitoring Architecture
 
@@ -243,34 +289,58 @@ The monitoring system:
 4. Triggers retraining when necessary
 5. Tracks multiple metrics types
 
-## Artifact Flow
+## Data Flow
 
-```mermaid
-graph LR
-    A[Training] --> B[MLflow]
-    C[Validation] --> B
-    D[Monitoring] --> B
-    E[API] --> B
-    
-    B --> F[Model Artifacts]
-    B --> G[Metrics]
-    B --> H[Plots]
-    B --> I[Reports]
-    
-    subgraph "MLflow Storage"
-    F
-    G
-    H
-    I
-    end
-```
+1. **Prediction Flow**
+   - Frontend request → API Service
+   - API Service → Model Registry
+   - Model Registry → Inference
+   - Results → Frontend
+   - Predictions → Database logging
 
-Artifacts are stored in MLflow:
-- Model files and configurations
-- Training and validation metrics
-- Performance plots and visualizations
-- Monitoring reports
-- API usage statistics
+2. **Monitoring Flow**
+   - Scheduled check → Drift Detection
+   - Drift Detection → Reference Data
+   - Results → MLflow
+   - Alerts → GitHub Issues
+   - Reports → Frontend display
+
+3. **Training Flow**
+   - Data → Preprocessing
+   - Preprocessing → Training
+   - Training → MLflow
+   - MLflow → Model Registry
+   - Model Registry → API Service
+
+## Component Interactions
+
+### API Service
+- Serves predictions
+- Manages model versions
+- Handles drift detection requests
+- Provides health monitoring
+- Logs predictions to database
+
+### Frontend
+- Displays predictions
+- Shows model information
+- Visualizes drift reports
+- Provides user interface
+- Workforce overview dashboard
+
+### Drift Detection
+- Monitors data drift
+- Generates reports
+- Updates MLflow metrics
+- Triggers alerts
+- Manages reference data
+
+### MLflow
+- Tracks experiments
+- Stores artifacts
+- Manages model versions
+- Records metrics
+- Maintains drift history
 
 ## Security Architecture
 
@@ -296,28 +366,64 @@ Security measures include:
 - Secure service communication
 - Data encryption
 
-## Scaling Architecture
+## Security Considerations
 
-```mermaid
-graph TD
-    A[Load Balancer] --> B[API Instances]
-    B --> C[Database]
-    B --> D[Cache]
-    
-    subgraph "Scaling Group"
-    B1[Instance 1]
-    B2[Instance 2]
-    B3[Instance 3]
-    end
-    
-    B --> B1
-    B --> B2
-    B --> B3
-```
+1. **API Security**
+   - Authentication
+   - Rate limiting
+   - Input validation
+   - Error handling
+   - Database security
 
-Scaling considerations:
-- Load balancing for API instances
-- Database connection pooling
-- Caching for performance
-- Horizontal scaling capability
-- Resource monitoring 
+2. **Data Security**
+   - Secure storage
+   - Access control
+   - Data encryption
+   - Audit logging
+   - Environment variables
+
+3. **Model Security**
+   - Version control
+   - Access management
+   - Validation checks
+   - Monitoring
+   - Artifact protection
+
+## Scalability
+
+1. **Horizontal Scaling**
+   - Docker containerization
+   - Load balancing
+   - Stateless design
+   - Resource management
+   - Database connection pooling
+
+2. **Vertical Scaling**
+   - Resource optimization
+   - Performance tuning
+   - Caching strategies
+   - Database optimization
+   - Memory management
+
+## Monitoring and Maintenance
+
+1. **System Monitoring**
+   - Health checks
+   - Performance metrics
+   - Resource usage
+   - Error tracking
+   - Database monitoring
+
+2. **Model Monitoring**
+   - Drift detection
+   - Performance tracking
+   - Data quality
+   - Prediction monitoring
+   - Fairness metrics
+
+3. **Maintenance**
+   - Regular updates
+   - Backup procedures
+   - Cleanup tasks
+   - Documentation updates
+   - MLflow maintenance 

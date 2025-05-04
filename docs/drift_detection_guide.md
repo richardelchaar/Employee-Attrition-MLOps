@@ -1,6 +1,6 @@
 # Drift Detection Guide
 
-This guide provides comprehensive instructions for using the Drift Detection system in the Employee Attrition MLOps project.
+This guide provides comprehensive technical instructions for implementing and using the Drift Detection system in the Employee Attrition MLOps project. For the high-level monitoring strategy and model governance, please refer to [monitoring.md](monitoring.md).
 
 ## Table of Contents
 

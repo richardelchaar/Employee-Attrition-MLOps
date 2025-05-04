@@ -41,7 +41,8 @@ This project transforms a basic employee attrition prediction model into a full-
   - Cross-validation and testing
 
 - **Monitoring & Maintenance**
-  - Real-time drift detection
+  - [Monitoring Strategy](docs/monitoring.md): High-level monitoring approach and model governance
+  - [Drift Detection](docs/drift_detection_guide.md): Technical implementation of drift detection
   - Performance metric tracking
   - Automated alert system
   - Model health monitoring
@@ -199,7 +200,9 @@ result = response.json()
 print(f"Drift detected: {result['drift_detected']}")
 ```
 
-For comprehensive documentation on drift detection, see the [Drift Detection Guide](docs/drift_detection_guide.md).
+For comprehensive documentation on drift detection and monitoring:
+- [Monitoring Strategy](docs/monitoring.md): High-level monitoring approach and model governance
+- [Drift Detection Guide](docs/drift_detection_guide.md): Technical implementation and usage details
 
 ### MLflow Maintenance
 
@@ -238,8 +241,57 @@ python scripts/mlflow_maintenance.py --fix-run-metadata
 │ └── frontend/ # Streamlit app
 ├── tests/ # Test files
 ├── docs/ # Documentation
-├── mlruns/ # MLflow tracking and artifacts
-└── reports/ # Generated reports
+├── mlruns/ # MLflow experiment tracking data
+├── mlartifacts/ # MLflow model artifacts and metadata
+├── reference_data/ # Baseline data for drift detection
+├── reference_predictions/ # Reference model predictions
+├── reports/ # Generated reports
+└── test_artifacts/ # Test output files
+
+### MLflow Directory Structure
+
+The project uses two main MLflow directories:
+- `mlruns/`: Contains experiment tracking data, including:
+  - Run metadata
+  - Metrics
+  - Parameters
+  - Tags
+  - Run history
+- `mlartifacts/`: Stores model artifacts and metadata, including:
+  - Saved models
+  - Model configurations
+  - Feature importance plots
+  - SHAP explanations
+  - Drift detection reports
+
+### Drift Detection Scripts
+
+The project includes two main drift detection scripts:
+1. `check_production_drift.py`:
+   - Main drift detection script
+   - Runs statistical tests on production data
+   - Generates HTML reports
+   - Updates MLflow metrics
+   - Used in automated workflows
+
+2. `check_drift_via_api.py`:
+   - API-based drift detection
+   - Used for on-demand drift checks
+   - Supports custom thresholds
+   - Returns JSON results
+   - Used in the drift detection API
+
+### Logging Files
+
+The project maintains two main log files:
+- `production_automation.log`: Logs from production automation workflows
+- `test_production_automation.log`: Logs from test runs of production automation
+
+These logs are used for:
+- Debugging automation issues
+- Monitoring workflow execution
+- Tracking drift detection results
+- Auditing model changes
 
 ## Repository Structure
 
@@ -418,51 +470,15 @@ Before starting, ensure you have the following installed:
 
 1. **ODBC Driver Installation**
    - **Challenge**: Microsoft ODBC driver installation can be tricky on macOS
-   - **Solution**:
-     ```bash
-     # Install unixodbc first
-     brew install unixodbc
-     
-     # Add Microsoft tap
-     brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
-     
-     # Install driver
-     brew install msodbcsql17 mssql-tools
-     
-     # Verify installation
-     odbcinst -q -d
-     ```
-   - **Troubleshooting**: See [ODBC Troubleshooting Guide](docs/troubleshooting/odbc.md)
+   - **Solution**: See the [Setup Details Guide](docs/setup_details.md#odbc-driver-installation)
 
 2. **Pydantic v2 Dependency Conflicts**
    - **Challenge**: Some packages may require specific Pydantic versions
-   - **Solution**:
-     ```bash
-     # Check current Pydantic version
-     poetry show pydantic
-     
-     # Update to compatible version
-     poetry add "pydantic>=2.0.0,<3.0.0"
-     
-     # Resolve dependencies
-     poetry install
-     ```
-   - **Troubleshooting**: See [Dependency Management Guide](docs/troubleshooting/dependencies.md)
+   - **Solution**: See the [Setup Details Guide](docs/setup_details.md#common-issues)
 
 3. **Python Version Management**
    - **Challenge**: Multiple Python versions can cause conflicts
-   - **Solution**:
-     ```bash
-     # Use pyenv for version management
-     brew install pyenv
-     
-     # Install Python 3.11
-     pyenv install 3.11.0
-     
-     # Set local version
-     pyenv local 3.11.0
-     ```
-   - **Troubleshooting**: See [Python Environment Guide](docs/troubleshooting/python.md)
+   - **Solution**: See the [Setup Details Guide](docs/setup_details.md#python-environment)
 
 ### Installation Steps
 
@@ -1058,21 +1074,23 @@ Note: All commands assume you're in the project root directory and have Poetry i
 
 MIT
 
-## Documentation Structure
+## Documentation
+
+The project documentation is organized into several key areas:
 
 ### Core Documentation
-- [Architecture](docs/architecture.md): System design, components, and workflows
-- [Getting Started](docs/getting_started.md): Installation and setup guide
-- [Setup Details](docs/setup_details.md): Detailed configuration instructions
-- [MLflow Usage](docs/mlflow_usage.md): Experiment tracking and model management
-- [Monitoring](docs/monitoring.md): Drift detection and retraining workflows
-- [API Documentation](docs/api_documentation.md): Endpoint reference and usage examples
+- [Architecture](docs/architecture.md): System design and components
+- [Setup Guide](docs/setup_details.md): Installation and configuration
+- [Getting Started](docs/getting_started.md): Quick start guide
+- [API Documentation](docs/api_documentation.md): API reference
 
 ### MLOps Components
-- [MLOps Workflow](docs/mlops_workflow_guide.md): End-to-end MLOps pipeline
+- [MLflow Usage](docs/mlflow_usage.md): Experiment tracking and model management
+- [Monitoring Strategy](docs/monitoring.md): High-level monitoring approach and model governance
+- [Drift Detection Guide](docs/drift_detection_guide.md): Technical implementation of drift detection
+- [MLOps Workflow](docs/mlops_workflow_guide.md): End-to-end pipeline guide
 - [CI/CD Workflow](docs/ci_cd_workflow.md): Continuous integration and deployment
-- [Drift Detection Guide](docs/drift_detection_guide.md): Drift detection implementation
 - [Responsible AI](docs/responsible_ai.md): Fairness assessment and bias mitigation
 
 ### Reference Materials
-- [Troubleshooting](docs/troubleshooting.md): Common issues and solutions
+- [Troubleshooting Guide](docs/troubleshooting.md): Common issues and solutions

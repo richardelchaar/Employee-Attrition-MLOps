@@ -182,28 +182,27 @@ This guide will help you set up and run the Employee Attrition MLOps project.
 
 ## Documentation
 
-- [CI/CD & Automation](ci_cd_automation.md)
-- [Monitoring & Retraining](monitoring.md)
+- [CI/CD Workflow](ci_cd_workflow.md)
+- [Monitoring](monitoring.md)
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **MLflow Connection Issues**
-   - Ensure MLflow server is running
-   - Check MLFLOW_TRACKING_URI in .env
+   - See [MLflow Usage Guide](mlflow_usage.md) for configuration details
+   - Check [Troubleshooting Guide](troubleshooting.md#mlflow-issues) for common solutions
 
 2. **Database Connection Issues**
-   - Verify DATABASE_URL_PYMSSQL in .env
-   - Check database server status
+   - See [Setup Details](setup_details.md#database-setup) for configuration
+   - Check [Troubleshooting Guide](troubleshooting.md#database-connection-issues) for solutions
 
 3. **Docker Issues**
-   - Ensure Docker daemon is running
-   - Check port conflicts
-   - Verify Docker Compose version
+   - See [Setup Details](setup_details.md#docker-setup) for configuration
+   - Check [Troubleshooting Guide](troubleshooting.md#docker-issues) for solutions
 
 ### Getting Help
 
-- Check the [documentation](.)
-- Review [troubleshooting guides](.)
+- Check the [Troubleshooting Guide](troubleshooting.md)
+- Review [Setup Details](setup_details.md)
 - Create an issue in the repository 
