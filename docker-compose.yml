@@ -11,6 +11,7 @@ services:
     volumes:
       - ./mlruns:/mlflow_runs
       - ./mlartifacts:/mlflow_artifacts
+      # - ./drift_reference:/drift_reference # Keep old one commented
     networks:
       - app_network
     healthcheck:
@@ -22,30 +23,67 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile  # Your main backend Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
       mlflow-server:
         condition: service_healthy
     environment:
-      - DATABASE_URL=${DATABASE_URL_PYMSSQL}
-      - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL}
+      - DATABASE_URL=${DATABASE_URL_PYMSSQL} # Used by DB connection logic
+      - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL} # Required by Settings
+      - DATABASE_URL_PYODBC=${DATABASE_URL_PYODBC}   # Required by Settings
       - MLFLOW_TRACKING_URI=http://mlflow-server:5001
       - DB_PREDICTION_LOG_TABLE=${DB_PREDICTION_LOG_TABLE:-prediction_logs}
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app:/app/src
+      - PYTHONPATH=/app # Updated PYTHONPATH for main API too
     volumes:
-      - ./src:/app/src
-      - ./.env:/app/.env
+      - ./src:/app/src # Mount source for development? Keep for now.
+      # Removed .env mount as settings come from environment
     command: ["uvicorn", "employee_attrition_mlops.api:app", "--host", "0.0.0.0", "--port", "8000"]
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000"]
+      # Use wget with output to /dev/null to force GET request
+      test: "wget -qO- http://localhost:8000/health > /dev/null || exit 1"
       interval: 10s
       timeout: 5s
       retries: 5
+
+  drift-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.drift
+    ports:
+      - "${DRIFT_PORT:-8001}:8000"
+    depends_on:
+      mlflow-server:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      # Add required env vars for Settings 
+      - DATABASE_URL=${DATABASE_URL_PYMSSQL}
+      - DATABASE_URL_PYMSSQL=${DATABASE_URL_PYMSSQL} 
+      - DATABASE_URL_PYODBC=${DATABASE_URL_PYODBC}   # Add this too for Settings consistency
+      - MLFLOW_TRACKING_URI=http://mlflow-server:5001
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    volumes:
+      # Mount directories for reference artifacts (API will download if needed)
+      - ./reference_data:/app/reference_data
+      - ./reference_predictions:/app/reference_predictions
+      # Mount reports directory so API can read latest results for UI
+      - ./reports:/app/reports
+    networks:
+      - app_network
+    healthcheck:
+      # Use curl, add start_period for grace time
+      test: ["CMD-SHELL", "curl --fail http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s # Wait 20s before failures count
 
   frontend:
     build:
@@ -55,12 +93,15 @@ services:
       - "${FRONTEND_PORT:-8501}:8501"
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
+      drift-api:
+        condition: service_healthy
     environment:
       - API_URL=http://api:8000
+      - DRIFT_API_URL=http://drift-api:8000 # Updated URL for drift API service name
     volumes:
       - ./src/frontend:/app/src/frontend
-      - ./.env:/app/.env
+      # Removed .env mount
     command: ["streamlit", "run", "src/frontend/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
     networks:
       - app_network

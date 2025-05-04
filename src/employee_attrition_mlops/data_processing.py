@@ -14,8 +14,8 @@ from dotenv import load_dotenv # Added
 try:
     from .config import (TARGET_COLUMN, BUSINESS_TRAVEL_MAPPING,
                          COLS_TO_DROP_POST_LOAD, DB_HISTORY_TABLE,
-                         DATABASE_URL_PYMSSQL,
-                         SNAPSHOT_DATE_COL, SKEWNESS_THRESHOLD) # Added DB related vars & SKEWNESS_THRESHOLD
+                         DATABASE_URL_PYMSSQL, DATABASE_URL_PYODBC,
+                         SNAPSHOT_DATE_COL, SKEWNESS_THRESHOLD) # Added DATABASE_URL_PYODBC
 except ImportError as e:
      # Fallback or error handling if config import fails
      logging.error(f"Could not import from .config: {e}. Using fallback values or defaults.")
@@ -25,6 +25,7 @@ except ImportError as e:
      COLS_TO_DROP_POST_LOAD = ['EmployeeCount', 'StandardHours', 'Over18']
      DB_HISTORY_TABLE = "employees_history"
      DATABASE_URL_PYMSSQL = os.getenv("DATABASE_URL_PYMSSQL") # Try loading directly as fallback
+     DATABASE_URL_PYODBC = os.getenv("DATABASE_URL_PYODBC") # Try loading directly as fallback
      SNAPSHOT_DATE_COL = "SnapshotDate"
      SKEWNESS_THRESHOLD = 0.75
 
@@ -437,9 +438,9 @@ def load_and_clean_data_from_csv(path: str) -> pd.DataFrame:
 # --- NEW: Data Loading from Database ---
 def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFrame:
     """
-    Loads data from the specified database table using SQLAlchemy with pyodbc.
+    Loads data from the specified database table using SQLAlchemy with the appropriate driver.
+    Uses pyodbc when running locally and pymssql when running in Docker.
     Handles potential connection errors, and performs initial cleaning.
-    Uses DATABASE_URL_PYMSSQL from config.
 
     Args:
         table_name: The name of the table to load data from.
@@ -448,19 +449,36 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
         A pandas DataFrame containing the loaded and initially cleaned data,
         or None if loading fails.
     """
-    if not DATABASE_URL_PYMSSQL:
-        logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot load data from DB.")
-        return None
+    # Check if running in Docker by looking for /.dockerenv file
+    in_docker = os.path.exists("/.dockerenv")
+    
+    if in_docker:
+        # Use pymssql in Docker
+        if not DATABASE_URL_PYMSSQL:
+            logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot load data from DB.")
+            return None
+            
+        connection_string = DATABASE_URL_PYMSSQL
+        driver_name = "pymssql"
+        logger.info(f"Running in Docker, using pymssql driver for database connection.")
+    else:
+        # Use pyodbc locally
+        if not DATABASE_URL_PYMSSQL:
+            logger.error("DATABASE_URL_PYMSSQL is not configured. Cannot load data from DB.")
+            return None
+            
+        connection_string = DATABASE_URL_PYMSSQL
+        driver_name = "pyodbc"
+        logger.info(f"Running locally, using pyodbc driver for database connection.")
 
-    connection_string = DATABASE_URL_PYMSSQL # Use the specific URL for pyodbc
-    logger.info(f"Attempting to connect to database using pymssql driver (URL from config).")
+    logger.info(f"Attempting to connect to database using {driver_name} driver.")
 
     engine = None
     df = None
     try:
-        # Establish database connection using the pyodbc URL
+        # Establish database connection
         engine = create_engine(connection_string)
-        logger.info(f"Successfully created SQLAlchemy engine using pyodbc.")
+        logger.info(f"Successfully created SQLAlchemy engine using {driver_name}.")
 
         # Check if table exists
         with engine.connect() as connection:
@@ -506,19 +524,19 @@ def load_and_clean_data_from_db(table_name: str = DB_HISTORY_TABLE) -> pd.DataFr
         logger.error(f"Database error during connection or query: {e}", exc_info=True)
         df = None
     except ImportError as e:
-        logger.error(f"ImportError: pyodbc driver might not be installed: {e}")
-        logger.error("Please ensure pyodbc is installed ('poetry install')")
+        logger.error(f"ImportError: {driver_name} driver might not be installed: {e}")
+        logger.error(f"Please ensure {driver_name} is installed ('poetry install')")
         df = None
     except Exception as e:
-        logger.error(f"An unexpected error occurred during data loading/cleaning from DB (pymssql): {e}", exc_info=True)
+        logger.error(f"An unexpected error occurred during data loading/cleaning from DB ({driver_name}): {e}", exc_info=True)
         df = None
     finally:
         if engine:
             engine.dispose()
-            logger.info("Database engine (pymssql) disposed.")
+            logger.info(f"Database engine ({driver_name}) disposed.")
 
     if df is None:
-        logger.error("Failed to load data from the database using pymssql.")
+        logger.error(f"Failed to load data from the database using {driver_name}.")
 
     return df
 

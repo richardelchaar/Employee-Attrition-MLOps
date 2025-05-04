@@ -6,6 +6,8 @@ import mlflow
 from datetime import datetime
 from src.monitoring.drift_detection import detect_drift
 from src.config.config import settings
+from employee_attrition_mlops.utils import save_json
+from employee_attrition_mlops.config import REPORTS_PATH
 
 def get_latest_reference_data():
     """Get the latest reference data file."""
@@ -139,7 +141,10 @@ def check_drift_and_log(reference_data, production_data, drift_level):
         print(f"Feature drift detected: {feature_drift_results['drift_detected']}")
         print(f"Target drift detected: {target_drift_results['drift_detected']}")
         print(f"Drifted features: {feature_drift_results['drifted_features']}")
-        
+
+        save_json(feature_drift_results, os.path.join(REPORTS_PATH, "feature_drift_results.json"))
+        save_json(target_drift_results, os.path.join(REPORTS_PATH, "target_drift_results.json"))
+
         return overall_drift_detected, overall_drift_score
 
 def main():

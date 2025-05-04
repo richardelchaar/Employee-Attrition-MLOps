@@ -340,77 +340,77 @@ def detect_drift(
             'error': str(e)
         }
 
-def detect_drift_old(reference_data: pd.DataFrame, current_data: pd.DataFrame, 
-                numerical_features: list = None, categorical_features: list = None,
-                target_column: str = None, prediction_column: str = None,
-                save_results: bool = True, mlflow_tracking: bool = False) -> dict:
-    """
-    Legacy function for drift detection, maintained for backward compatibility.
-    """
-    try:
-        # Set up column mapping
-        column_mapping = ColumnMapping()
+# def detect_drift_old(reference_data: pd.DataFrame, current_data: pd.DataFrame, 
+#                 numerical_features: list = None, categorical_features: list = None,
+#                 target_column: str = None, prediction_column: str = None,
+#                 save_results: bool = True, mlflow_tracking: bool = False) -> dict:
+#     """
+#     Legacy function for drift detection, maintained for backward compatibility.
+#     """
+#     try:
+#         # Set up column mapping
+#         column_mapping = ColumnMapping()
         
-        if numerical_features:
-            column_mapping.numerical_features = numerical_features
-        if categorical_features:
-            column_mapping.categorical_features = categorical_features
-        if target_column:
-            column_mapping.target = target_column
-        if prediction_column:
-            column_mapping.prediction = prediction_column
+#         if numerical_features:
+#             column_mapping.numerical_features = numerical_features
+#         if categorical_features:
+#             column_mapping.categorical_features = categorical_features
+#         if target_column:
+#             column_mapping.target = target_column
+#         if prediction_column:
+#             column_mapping.prediction = prediction_column
             
-        # Create drift test suite
-        tests = [DataDriftTestPreset()]
-        if prediction_column:
-            tests.append(DataQualityTestPreset())
+#         # Create drift test suite
+#         tests = [DataDriftTestPreset()]
+#         if prediction_column:
+#             tests.append(DataQualityTestPreset())
             
-        drift_test_suite = TestSuite(tests=tests)
+#         drift_test_suite = TestSuite(tests=tests)
         
-        # Run drift detection
-        drift_test_suite.run(
-            reference_data=reference_data,
-            current_data=current_data,
-            column_mapping=column_mapping
-        )
+#         # Run drift detection
+#         drift_test_suite.run(
+#             reference_data=reference_data,
+#             current_data=current_data,
+#             column_mapping=column_mapping
+#         )
         
-        # Get results
-        results = drift_test_suite.as_dict()
+#         # Get results
+#         results = drift_test_suite.as_dict()
         
-        # Save results if requested
-        if save_results:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            results_file = settings.DRIFT_ARTIFACTS_DIR / f"drift_results_{timestamp}.json"
+#         # Save results if requested
+#         if save_results:
+#             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#             results_file = settings.DRIFT_ARTIFACTS_DIR / f"drift_results_{timestamp}.json"
             
-            with open(results_file, 'w') as f:
-                json.dump(results, f, indent=2)
+#             with open(results_file, 'w') as f:
+#                 json.dump(results, f, indent=2)
             
-            logger.info(f"Drift detection results saved to {results_file}")
+#             logger.info(f"Drift detection results saved to {results_file}")
             
-            # Log to MLflow if enabled
-            if mlflow_tracking:
-                try:
-                    # Log drift metrics
-                    mlflow.log_metric("drift_detected", int(not results['summary']['all_passed']))
-                    mlflow.log_metric("failed_tests", sum(1 for test in results['tests'] if test['status'] == 'FAIL'))
+#             # Log to MLflow if enabled
+#             if mlflow_tracking:
+#                 try:
+#                     # Log drift metrics
+#                     mlflow.log_metric("drift_detected", int(not results['summary']['all_passed']))
+#                     mlflow.log_metric("failed_tests", sum(1 for test in results['tests'] if test['status'] == 'FAIL'))
                     
-                    # Log individual test results
-                    for test in results['tests']:
-                        mlflow.log_metric(f"test_{test['name']}_status", 
-                                       1 if test['status'] == 'PASS' else 0)
+#                     # Log individual test results
+#                     for test in results['tests']:
+#                         mlflow.log_metric(f"test_{test['name']}_status", 
+#                                        1 if test['status'] == 'PASS' else 0)
                     
-                    # Log drift artifacts
-                    mlflow.log_artifact(str(results_file))
+#                     # Log drift artifacts
+#                     mlflow.log_artifact(str(results_file))
                     
-                    logger.info("Drift detection results logged to MLflow")
-                except Exception as e:
-                    logger.error(f"Error logging to MLflow: {str(e)}")
+#                     logger.info("Drift detection results logged to MLflow")
+#                 except Exception as e:
+#                     logger.error(f"Error logging to MLflow: {str(e)}")
         
-        # Log results
-        logger.info(f"Drift detection completed. All tests passed: {results['summary']['all_passed']}")
+#         # Log results
+#         logger.info(f"Drift detection completed. All tests passed: {results['summary']['all_passed']}")
         
-        return results
+#         return results
         
-    except Exception as e:
-        logger.error(f"Error in drift detection: {str(e)}")
-        raise 
+#     except Exception as e:
+#         logger.error(f"Error in drift detection: {str(e)}")
+#         raise 

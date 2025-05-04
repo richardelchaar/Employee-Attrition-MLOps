@@ -9,7 +9,7 @@ import mlflow
 import pandas as pd
 import numpy as np
 from evidently.report import Report
-from evidently.metric_preset import DataDriftPreset
+from evidently.metric_preset import DataDriftPreset, TargetDriftPreset
 from evidently.metrics import DataDriftTable
 from evidently.metrics import DatasetDriftMetric
 
@@ -55,7 +55,7 @@ def get_baseline_artifacts(run_id):
     return baseline_profile_path, reference_data_path, feature_names_path
 
 def check_drift(current_data, reference_data):
-    """Check for drift between current and reference data."""
+    """Check for FEATURE drift between current and reference data."""
     # Create Evidently drift report with specific metrics
     data_drift_report = Report(metrics=[
         DatasetDriftMetric(),
@@ -105,6 +105,65 @@ def check_drift(current_data, reference_data):
             'drift_share': 0,
             'drifted_features': [],
             'n_drifted_features': 0,
+            'error': str(e)
+        }
+
+def check_prediction_drift(current_predictions: pd.DataFrame, reference_predictions: pd.DataFrame):
+    """Check for drift between current and reference predictions/probabilities."""
+    try:
+        # Ensure column names are consistent (assuming 'prediction' and 'probability')
+        if 'prediction' not in reference_predictions.columns or \
+           'probability' not in reference_predictions.columns or \
+           'prediction' not in current_predictions.columns or \
+           'probability' not in current_predictions.columns:
+            raise ValueError("Prediction DataFrames must contain 'prediction' and 'probability' columns.")
+            
+        # For prediction drift, we often focus on the probability distribution
+        # We need to map the columns correctly for TargetDriftPreset
+        # Let's treat 'probability' as the prediction/target and 'prediction' as a categorical feature for comparison
+        reference_predictions_mapped = reference_predictions.rename(columns={'probability': 'target', 'prediction': 'prediction_label'})
+        current_predictions_mapped = current_predictions.rename(columns={'probability': 'target', 'prediction': 'prediction_label'})
+        
+        column_mapping = {
+            'target': 'target', # The probability column
+            'prediction': None, # Not applicable here directly
+            'categorical_features': ['prediction_label'], # Compare the distribution of 0/1 labels
+            'numerical_features': [] # No other numerical features typically in prediction data
+        }
+
+        prediction_drift_report = Report(metrics=[
+            TargetDriftPreset(),
+        ])
+        
+        prediction_drift_report.run(
+            reference_data=reference_predictions_mapped,
+            current_data=current_predictions_mapped,
+            column_mapping=column_mapping
+        )
+        
+        report_dict = prediction_drift_report.as_dict()
+        
+        # Extract relevant metrics (structure might vary slightly based on TargetDriftPreset version)
+        drift_metric = report_dict.get('metrics', [])[0].get('result', {})
+        
+        prediction_drift_detected = drift_metric.get('target_drift', {}).get('drift_detected', False)
+        prediction_drift_score = drift_metric.get('target_drift', {}).get('drift_score', None)
+        # You might want more details depending on the preset's output
+        
+        logger.info(f"Prediction drift detected: {prediction_drift_detected}")
+        logger.info(f"Prediction drift score: {prediction_drift_score}")
+
+        return {
+            'prediction_drift_detected': prediction_drift_detected,
+            'prediction_drift_score': prediction_drift_score,
+            'report': report_dict # Include full report for details
+        }
+
+    except Exception as e:
+        logger.error(f"Error during prediction drift check: {e}", exc_info=True)
+        return {
+            'prediction_drift_detected': None, # Indicate error
+            'prediction_drift_score': None,
             'error': str(e)
         }
 

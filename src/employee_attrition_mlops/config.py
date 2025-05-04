@@ -2,6 +2,8 @@
 import os
 from dotenv import load_dotenv
 import logging
+from pydantic_settings import BaseSettings
+from functools import lru_cache
 
 # --- Basic Logging Setup (Optional, but good practice) ---
 # Configure logging early, though individual modules might refine it
@@ -121,4 +123,32 @@ logger.debug(f"Project Root: {PROJECT_ROOT}")
 logger.debug(f"MLflow Tracking URI: {MLFLOW_TRACKING_URI}")
 logger.debug(f"Database Table: {DB_HISTORY_TABLE}")
 logger.debug(f"Target Column: {TARGET_COLUMN}")
+
+class Settings(BaseSettings):
+    # Database settings
+    DATABASE_URL: str
+    DATABASE_URL_PYMSSQL: str
+    DB_PREDICTION_LOG_TABLE: str = "prediction_logs"
+    
+    # MLflow settings
+    MLFLOW_TRACKING_URI: str = "http://localhost:5001"
+    
+    # API settings
+    API_PORT: int = 8000
+    FRONTEND_PORT: int = 8501
+    DRIFT_PORT: int = 8001
+    
+    # Drift monitoring settings
+    DRIFT_THRESHOLD: float = 0.05  # Default drift threshold
+    DRIFT_CHECK_INTERVAL: int = 3600  # Check drift every hour
+    DRIFT_REFERENCE_PATH: str = "drift_reference/reference_train_data.parquet"
+    DRIFT_ARTIFACTS_PATH: str = "drift_artifacts"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
 

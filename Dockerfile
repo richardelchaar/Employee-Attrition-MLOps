@@ -1,11 +1,12 @@
 FROM python:3.11-slim
 
-# Install system dependencies including git
+# Install system dependencies including git and wget
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         git \
-        curl && \
+        curl \
+        wget && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory
