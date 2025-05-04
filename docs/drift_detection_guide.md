@@ -1,117 +1,119 @@
 # Drift Detection Guide
 
-This guide provides comprehensive technical instructions for implementing and using the Drift Detection system in the Employee Attrition MLOps project. For the high-level monitoring strategy and model governance, please refer to [monitoring.md](monitoring.md).
+This guide provides detailed information about the drift detection system in the Employee Attrition MLOps project.
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Setup and Configuration](#setup-and-configuration)
-- [Running Drift Detection](#running-drift-detection)
-- [Working with HTML Reports](#working-with-html-reports)
-- [Using the API](#using-the-api)
-- [GitHub Actions Integration](#github-actions-integration)
-- [MLflow Maintenance](#mlflow-maintenance)
-- [Advanced Usage](#advanced-usage)
+- [Overview](#overview)
+- [Drift Detection Parameters](#drift-detection-parameters)
+  - [Configuration Settings](#configuration-settings)
+  - [Feature Drift Detection](#feature-drift-detection)
+  - [Prediction Drift Detection](#prediction-drift-detection)
+  - [Interpreting Drift Results](#interpreting-drift-results)
+  - [Common Drift Patterns](#common-drift-patterns)
+- [Using the Drift Detection API](#using-the-drift-detection-api)
+  - [Starting the API Server](#starting-the-api-server)
+  - [API Endpoints](#api-endpoints)
+  - [Example API Usage](#example-api-usage)
+- [Automated Drift Detection](#automated-drift-detection)
+  - [Production Monitoring](#production-monitoring)
+  - [GitHub Actions Integration](#github-actions-integration)
+- [MLflow Integration](#mlflow-integration)
+  - [Drift Metrics in MLflow](#drift-metrics-in-mlflow)
+  - [Viewing Drift Metrics](#viewing-drift-metrics)
+- [Reference Data Management](#reference-data-management)
+  - [Setting Up Reference Data](#setting-up-reference-data)
+  - [Reference Data Structure](#reference-data-structure)
 - [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Logging](#logging)
 
-## Introduction
+## Overview
 
-The drift detection system monitors data and prediction drift over time, helping detect when your machine learning model might need retraining. The system uses:
+The drift detection system monitors both feature drift and prediction drift using statistical tests. It integrates with MLflow for tracking metrics and can trigger automated retraining when significant drift is detected.
 
-- **Evidently**: For statistical tests and report generation
-- **MLflow**: For experiment tracking and artifact storage
-- **GitHub Actions**: For automated monitoring and notifications
-- **FastAPI**: For API access to drift detection
+## Drift Detection Parameters
 
-### Key Concepts
-
-- **Data Drift**: Changes in the distribution of input features over time
-- **Prediction Drift**: Changes in the model's predictions over time
-- **Reference Data**: Baseline data (usually training data) used for comparison
-- **Drift Score**: Measure of how much drift has occurred (0-1)
-- **Drift Threshold**: The value above which drift is considered significant (default: 0.05)
-
-## Setup and Configuration
-
-### Prerequisites
-
-- Python 3.11+
-- Poetry for dependency management
-- MLflow server running
-
-### Setting Up Reference Data
-
-Before you can detect drift, you need reference data:
-
-```bash
-# Save reference data from your training dataset
-python save_reference_data.py
-
-# Or use a specific input file
-python save_reference_data.py --input-file path/to/training_data.csv
+### Configuration Settings
+```python
+# Default drift detection parameters
+DRIFT_CONFIDENCE = 0.95  # Confidence level for statistical tests
+DRIFT_STATTEST_THRESHOLD = 0.05  # Statistical test threshold
+RETRAIN_TRIGGER_FEATURE_COUNT = 3  # Number of drifted features to trigger retraining
+RETRAIN_TRIGGER_DATASET_DRIFT_P_VALUE = 0.05  # P-value threshold for dataset drift
 ```
 
-The reference data will be saved in the `drift_reference/` directory and also logged to MLflow for tracking. The script generates synthetic employee data by default if no input file is provided.
+### Feature Drift Detection
+- Uses Evidently's statistical tests
+- Compares current data against reference data
+- Monitors both numerical and categorical features
+- Generates detailed drift reports
 
-## Running Drift Detection
+### Prediction Drift Detection
+- Monitors model predictions over time
+- Compares prediction distributions
+- Tracks prediction drift scores
+- Triggers alerts when thresholds are exceeded
 
-### Basic Drift Detection
+### Interpreting Drift Results
 
-```bash
-# Run drift detection with default settings
-python check_production_drift.py
+Drift detection outputs several key metrics that help you understand the state of your model:
 
-# Run drift detection on a specific file
-python check_production_drift.py --input-file path/to/production_data.csv
+1. **Drift Score (0-1)**
+   - Higher scores indicate more significant drift
+   - Default threshold is 0.05
+   - Scores above threshold trigger alerts
+   - Consider both magnitude and trend over time
 
-# Run drift detection with a specific model
-python check_production_drift.py --run-id <mlflow_run_id>
+2. **Drifted Features**
+   - List of features showing significant drift
+   - Number of drifted features indicates severity
+   - 3+ drifted features trigger retraining
+   - Check feature importance for context
 
-# Run drift detection with a custom threshold
-python check_production_drift.py --threshold 0.01
-```
+3. **Drift Share**
+   - Percentage of features showing drift
+   - Helps assess overall data stability
+   - High drift share suggests systematic changes
+   - Consider business context for interpretation
 
-### Interpreting Results
+4. **Statistical Test Results**
+   - P-values for each feature
+   - Confidence levels for drift detection
+   - Helps identify most significant changes
+   - Use to prioritize investigation
 
-Drift detection outputs:
-- Drift detected (yes/no)
-- Drift score (0-1)
-- List of drifted features
-- Number of drifted features
-- Drift share (percentage of features that drifted)
+5. **Prediction Drift**
+   - Changes in model output distribution
+   - May indicate concept drift
+   - Compare with feature drift
+   - Critical for model performance
 
-A higher drift score indicates more significant drift in your data. The default threshold is 0.05, meaning any score above this will trigger a drift detection alert.
+### Common Drift Patterns
 
-## Working with HTML Reports
+1. **Gradual Drift**
+   - Slow, consistent changes over time
+   - May indicate changing business conditions
+   - Consider scheduled model updates
 
-### Generating Reports
+2. **Sudden Drift**
+   - Abrupt changes in distributions
+   - May indicate data pipeline issues
+   - Investigate immediately
 
-Drift detection can generate comprehensive HTML reports with feature-by-feature analysis:
+3. **Seasonal Drift**
+   - Regular patterns in drift scores
+   - May require seasonal model variants
+   - Document and account for in monitoring
 
-```bash
-# Generate a comprehensive HTML report
-python scripts/generate_drift_report.py --current-data path/to/data.csv
+4. **Feature-Specific Drift**
+   - Drift in specific features only
+   - May indicate data quality issues
+   - Check data collection processes
 
-# Generate a report with a custom name
-python scripts/generate_drift_report.py --current-data path/to/data.csv --report-name monthly_drift_may
+## Using the Drift Detection API
 
-# Include target/prediction drift
-python scripts/generate_drift_report.py --current-data path/to/data.csv --target target_column
-```
-
-### Viewing Reports
-
-HTML reports are saved in the `reports/` directory and can be opened in any web browser. They include:
-
-- Feature distribution comparisons with overlay charts
-- Statistical test results for each feature
-- Data quality metrics and changes
-- Drift metrics and visualizations
-- Recommendations for addressing drift issues
-
-## Using the API
-
-The project includes a FastAPI endpoint for on-demand drift detection.
+The project includes a FastAPI endpoint for drift detection:
 
 ### Starting the API Server
 
@@ -119,7 +121,7 @@ The project includes a FastAPI endpoint for on-demand drift detection.
 # Start the API server
 python drift_api.py
 
-# With a custom port
+# With custom port
 PORT=8080 python drift_api.py
 ```
 
@@ -127,20 +129,16 @@ PORT=8080 python drift_api.py
 
 The API is documented at http://localhost:8000/docs and includes:
 
-- `GET /health`: Health check to verify the API is running
+- `GET /health`: Health check endpoint
 - `POST /detect-drift`: Detect drift from JSON data
-- `GET /`: Root endpoint with API information
+  - Parameters:
+    - `data`: List of feature records
+    - `threshold`: Drift detection threshold (default: 0.05)
+    - `confidence`: Statistical test confidence level (default: 0.95)
+    - `features`: Optional list of features to monitor
+- `GET /`: API information and documentation
 
 ### Example API Usage
-
-To test the API, you can use the included test client:
-
-```bash
-# Run the test client
-python test_drift_api_client.py
-```
-
-For programmatic usage:
 
 ```python
 import requests
@@ -148,8 +146,6 @@ import pandas as pd
 
 # Load data
 df = pd.read_csv("path/to/data.csv")
-
-# Convert to format for API
 data = df.to_dict(orient="records")
 
 # Detect drift
@@ -157,7 +153,9 @@ response = requests.post(
     "http://localhost:8000/detect-drift",
     json={
         "data": data,
-        "threshold": 0.05
+        "threshold": 0.05,
+        "confidence": 0.95,
+        "features": ["age", "salary", "satisfaction_score"]
     }
 )
 
@@ -168,113 +166,111 @@ print(f"Drift score: {result['drift_score']}")
 print(f"Drifted features: {result['drifted_features']}")
 ```
 
-## GitHub Actions Integration
+## Automated Drift Detection
+
+### Production Monitoring
+
+The system includes two main drift detection scripts:
+
+1. `check_production_drift.py`:
+   - Runs scheduled drift checks
+   - Compares against reference data
+   - Logs results to MLflow
+   - Generates drift reports
+
+2. `check_drift_via_api.py`:
+   - Uses the drift detection API
+   - Suitable for integration with external systems
+   - Supports custom thresholds and features
+
+### GitHub Actions Integration
 
 The project includes GitHub Actions workflows for automated drift detection:
 
-### Scheduled Monitoring
+#### Scheduled Monitoring
+- Runs automatically every Monday
+- Performs drift detection on latest data
+- Creates GitHub issues if drift is detected
+- Generates HTML reports
+- Fixes MLflow metadata issues
 
-The drift detection workflow runs automatically every Monday and:
-1. Performs drift detection on the latest data
-2. Creates GitHub issues if drift is detected
-3. Generates HTML reports and attaches them as artifacts
-4. Fixes MLflow metadata issues automatically
-
-### Manual Triggering
-
-You can manually trigger drift detection:
+#### Manual Triggering
 1. Go to the "Actions" tab in your GitHub repository
 2. Select the "Drift Detection" workflow
 3. Click "Run workflow"
 
-## MLflow Maintenance
+## MLflow Integration
 
-The drift detection system integrates with MLflow to track drift metrics over time.
+### Drift Metrics in MLflow
 
-### Viewing Drift Metrics in MLflow
+The system logs the following metrics to MLflow:
 
-1. Start the MLflow UI: `mlflow ui`
-2. Navigate to the experiment containing your drift detection runs
-3. View drift metrics including:
-   - Drift score
-   - Number of drifted features
-   - Drift detected (0/1)
+1. **Feature Drift Metrics**
+   - `drift_detected`: Binary indicator
+   - `drift_score`: Overall drift score
+   - `n_drifted_features`: Number of drifted features
+   - `drifted_features`: List of drifted feature names
 
-### Fixing MLflow Metadata
+2. **Prediction Drift Metrics**
+   - `prediction_drift_detected`: Binary indicator
+   - `prediction_drift_score`: Prediction drift score
+   - `prediction_distribution_drift`: Distribution drift score
 
-```bash
-# Fix missing meta.yaml files
-python scripts/mlflow_maintenance.py
+### Viewing Drift Metrics
 
-# Fix run metadata issues
-python scripts/mlflow_maintenance.py --fix-run-metadata
+1. Start the MLflow UI:
+   ```bash
+   mlflow ui --port 5001
+   ```
 
-# Dry run (show what would be fixed without making changes)
-python scripts/mlflow_maintenance.py --fix-run-metadata --dry-run
-```
+2. Navigate to the drift detection experiment
+3. View drift metrics and reports
+4. Compare drift scores over time
 
-## Advanced Usage
+## Reference Data Management
 
-### Custom Drift Detection
+### Setting Up Reference Data
 
-You can use the `DriftDetector` class directly in your Python code:
+1. Save new reference data:
+   ```bash
+   python save_reference_data.py
+   ```
 
-```python
-from src.monitoring.drift_detection import DriftDetector
-import pandas as pd
+2. Update reference predictions:
+   ```bash
+   python save_reference_predictions.py
+   ```
 
-# Load reference and current data
-reference_data = pd.read_parquet("drift_reference/reference_train_data.parquet")
-current_data = pd.read_csv("path/to/current_data.csv")
+### Reference Data Structure
 
-# Create detector with custom threshold
-detector = DriftDetector(drift_threshold=0.01, mlflow_tracking=True)
-
-# Detect feature drift
-drift_detected, drift_score, drifted_features = detector.detect_drift(
-    reference_data=reference_data,
-    current_data=current_data,
-    features=["age", "salary", "department"]  # Optional: specify features to check
-)
-
-# Detect prediction drift
-pred_drift, pred_score = detector.detect_prediction_drift(
-    reference_data=reference_data,
-    current_data=current_data,
-    prediction_column="predicted_attrition"
-)
-
-print(f"Feature drift detected: {drift_detected}, score: {drift_score}")
-print(f"Prediction drift detected: {pred_drift}, score: {pred_score}")
-```
-
-### Integrating with Model Monitoring
-
-You can integrate drift detection into your model monitoring pipeline:
-
-1. Set up scheduled drift detection using GitHub Actions
-2. Configure alerting through GitHub Issues when drift is detected
-3. Implement automatic model retraining when drift exceeds critical thresholds
+- `reference_data/`: Contains baseline feature data
+- `reference_predictions/`: Contains baseline predictions
+- `reports/`: Stores drift detection reports
 
 ## Troubleshooting
 
 ### Common Issues
 
-- **Missing reference data**: Ensure you've run `save_reference_data.py` to create reference data
-- **MLflow errors**: Run `mlflow_maintenance.py` to fix metadata issues
-- **API connection errors**: Verify the MLflow server is running and accessible
-- **No drift detected when expected**: Check if the threshold is too high (try lowering it)
-- **All features showing drift**: Check for data type mismatches or preprocessing issues
+1. **MLflow Connection Issues**
+   ```bash
+   # Check MLflow server
+   curl http://localhost:5001/health
+   ```
 
-### Logs
+2. **Reference Data Issues**
+   ```bash
+   # Verify reference data
+   python scripts/verify_reference_data.py
+   ```
 
-- Check MLflow logs for drift detection results
-- API logs are available in the terminal when running the API server
-- GitHub Actions logs can be found in the "Actions" tab of your repository 
+3. **API Connection Issues**
+   ```bash
+   # Test API connection
+   curl http://localhost:8000/health
+   ```
 
-### Getting Help
+### Logging
 
-If you encounter issues not covered in this guide:
-1. Check the issue tracker for similar problems
-2. Review the implementation in `src/monitoring/drift_detection.py`
-3. Run tests to verify your drift detection setup works correctly 
+- Check `production_automation.log` for production drift detection logs
+- Check `test_production_automation.log` for test drift detection logs
+- MLflow logs contain detailed drift detection metrics 
