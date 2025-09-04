@@ -18,46 +18,6 @@ This project implements a full-stack, production-grade MLOps system to predict e
 
 -----
 
-## Architecture Overview
-
-The system is designed with a decoupled, microservices-based architecture. Each component runs in its own Docker container, promoting scalability and maintainability.
-
-```mermaid
-graph TD
-    subgraph "User Interaction"
-        UI[Frontend - Streamlit]
-    end
-
-    subgraph "Core Services"
-        API[API Service - FastAPI]
-        DriftAPI[Drift Detection API]
-    end
-
-    subgraph "MLOps Backbone"
-        MLflow[MLflow Server]
-        DB[(SQL Database)]
-    end
-
-    subgraph "Automation"
-        GHA[GitHub Actions]
-    end
-
-    UI --> API
-    UI --> DriftAPI
-
-    API --> MLflow
-    API --> DB
-
-    DriftAPI --> MLflow
-    DriftAPI --> DB
-
-    GHA -->|"Triggers Training, Prediction & Drift Checks"| API
-    GHA -->|"Triggers Training, Prediction & Drift Checks"| DriftAPI
-    GHA -->|"Triggers Training, Prediction & Drift Checks"| MLflow
-```
-
------
-
 ## CI/CD Automation with GitHub Actions
 
 The core of the project's automation is a **CI/CD pipeline** managed by GitHub Actions. This pipeline handles everything from code validation to the monthly production monitoring and retraining cycle.
