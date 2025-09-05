@@ -76,7 +76,7 @@ This is the recommended method for running the project.
 1.  **Clone the Repository**
 
     ```bash
-    git clone https://github.com/BTCJULIAN/Employee-Attrition-2.git
+    git clone https://github.com/richardelchaar/Employee-Attrition-2.git
     cd Employee-Attrition-2
     ```
 
