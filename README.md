@@ -131,20 +131,20 @@ The repository is organized to separate concerns, making it clean and maintainab
 For more in-depth information, please refer to the comprehensive documentation.
 
   * **Core Concepts**
-      * [System Architecture](https://www.google.com/search?q=docs/architecture.md)
-      * [MLOps Workflow Guide](https://www.google.com/search?q=docs/mlops_workflow_guide.md)
-      * [CI/CD Workflow](https://www.google.com/search?q=docs/ci_cd_workflow.md)
+      * [System Architecture](docs/architecture.md)
+      * [MLOps Workflow Guide](docs/mlops_workflow_guide.md)
+      * [CI/CD Workflow](docs/ci_cd_workflow.md)
   * **Guides & Usage**
-      * [Getting Started](https://www.google.com/search?q=docs/getting_started.md)
-      * [Detailed Setup Guide](https://www.google.com/search?q=docs/setup_details.md)
-      * [MLflow Usage](https://www.google.com/search?q=docs/mlflow_usage.md)
+      * [Getting Started](docs/getting_started.md)
+      * [Detailed Setup Guide](docs/setup_details.md)
+      * [MLflow Usage](docs/mlflow_usage.md)
   * **Key Features**
-      * [Monitoring & Governance Strategy](https://www.google.com/search?q=docs/monitoring.md)
-      * [Drift Detection Guide](https://www.google.com/search?q=docs/drift_detection_guide.md)
-      * [Responsible AI Guide](https://www.google.com/search?q=docs/responsible_ai.md)
+      * [Monitoring & Governance Strategy](docs/monitoring.md)
+      * [Drift Detection Guide](docs/drift_detection_guide.md)
+      * [Responsible AI Guide](docs/responsible_ai.md)
   * **Reference**
-      * [API Documentation](https://www.google.com/search?q=docs/api_documentation.md)
-      * [Troubleshooting Guide](https://www.google.com/search?q=docs/troubleshooting.md)
+      * [API Documentation](docs/api_documentation.md)
+      * [Troubleshooting Guide](docs/troubleshooting.md)
 
 -----
 
