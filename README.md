@@ -2,6 +2,8 @@
 
 This project implements a full-stack, production-grade MLOps system to predict employee attrition. It automates the entire machine learning lifecycle—from data processing and model training to deployment, monitoring, and automated retraining—while incorporating principles of Responsible AI.
 
+![Production System Pipeline](docs/Production_System_Pipeline.png)
+
 -----
 
 ## Key Features
@@ -15,6 +17,8 @@ This project implements a full-stack, production-grade MLOps system to predict e
   * **Experiment Tracking & Governance**: **MLflow** is used for comprehensive experiment tracking, model versioning, artifact storage (e.g., fairness reports, SHAP plots), and managing the model registry (Staging/Production).
   * **Responsible AI**: Fairness assessment with **Fairlearn** and model explainability using **SHAP** are integrated into the training pipeline to ensure transparency and mitigate bias.
   * **Containerized Deployment**: The entire application stack (API, Frontend, MLflow) is containerized with **Docker** and orchestrated with **Docker Compose** for consistent, reproducible, and scalable deployments.
+
+![MLFlow Demo Video](docs/MLFlow_Demo.gif)
 
 -----
 
@@ -53,12 +57,23 @@ The workflow performs the following steps automatically:
 
 -----
 
-## Technical Stack
+## Technical Stack 🛠️
 
-  * **ML & Data Science**: Scikit-learn, Optuna, SHAP, Evidently, Fairlearn
-  * **Backend & Frontend**: FastAPI, Streamlit
-  * **MLOps & Tooling**: MLflow, Docker, Docker Compose, Poetry
-  * **CI/CD**: GitHub Actions
+This project leverages a modern, robust stack of tools and libraries to build a reliable, end-to-end MLOps solution.
+
+| Category | Technology | Purpose |
+| :--- | :--- | :--- |
+| 🧪 **ML & Responsible AI** | **Scikit-learn**, **Optuna** | Core model training, building pipelines, and hyperparameter optimization. |
+| | **Evidently** | Advanced data and model drift detection. |
+| | **SHAP** & **Fairlearn** | Model explainability and fairness assessment for Responsible AI. |
+| 🌐 **Backend & Frontend** | **FastAPI** | Serving real-time predictions via a high-performance REST API. |
+| | **Streamlit** | Building the interactive user interface and monitoring dashboard. |
+| 🚀 **Data & MLOps Platform** | **Azure SQL Database** | Central data store for historical employee data and model predictions. |
+| | **MLflow** | Experiment tracking, model registry, and artifact storage. |
+| | **Docker** & **Docker Compose**| Containerization of all services for consistent, reproducible deployments. |
+| | **GitHub Actions** | CI/CD automation for testing, monitoring, and retraining workflows. |
+| 📦 **Core Language & Tooling** | **Python 3.11** | The primary programming language for the entire project. |
+| | **Poetry** | Dependency management and packaging. |
 
 -----
 
@@ -106,21 +121,41 @@ This is the recommended method for running the project.
 
 ## Project Structure
 
-The repository is organized to separate concerns, making it clean and maintainable.
+Of course. Here is the file structure section formatted with comments for your GitHub `README.md`.
+
+-----
+
+## Project Structure
+
+The repository is organized to separate concerns, making the codebase clean, maintainable, and easy to navigate.
 
 ```
 /
-├── .github/workflows/  # CI/CD automation workflows
-├── docs/               # All project documentation
-├── scripts/            # Automation scripts (training, prediction, etc.)
-├── src/                # Main source code
-│   ├── employee_attrition_mlops/ # Core ML package (pipelines, API)
-│   ├── frontend/         # Streamlit UI application
+├── .github/workflows/  # CI/CD pipelines (GitHub Actions)
+│   └── production_automation.yml # Main workflow for monitoring & retraining
+├── docs/               # All project documentation and guides
+├── scripts/            # Automation scripts for key MLOps tasks
+│   ├── optimize_train_select.py  # Model training, HPO, and evaluation
+│   ├── batch_predict.py          # Scheduled batch prediction job
+│   ├── save_reference_data.py    # Creates baseline data for drift monitoring
+│   └── run_production_automation.py # Orchestrator script called by CI/CD
+├── src/                # Main Python source code
+│   ├── employee_attrition_mlops/ # Core installable package
+│   │   ├── api.py          # FastAPI application for serving predictions
+│   │   ├── config.py       # Centralized project configuration
+│   │   ├── data_processing.py # Data loading and custom transformers
+│   │   └── pipelines.py    # scikit-learn ML pipeline definitions
+│   ├── frontend/         # Streamlit user interface code
+│   │   └── app.py          # Main script to run the dashboard
 │   └── monitoring/       # Drift detection logic
-├── tests/              # Test suite for the entire codebase
+│       └── drift_detection.py # Core functions for calculating drift
+├── tests/              # Test suite for all application code
 ├── mlruns/             # MLflow experiment data (ignored by git)
-├── reports/            # Generated drift and evaluation reports
-├── docker-compose.yml  # Defines and orchestrates all services
+├── reports/            # Generated output files (e.g., drift reports)
+├── .env                # Local environment variables & secrets (ignored by git)
+├── .gitignore          # Specifies files and folders for Git to ignore
+├── docker-compose.yml  # Orchestrates all services for local deployment
+├── Dockerfile          # Recipe for building the main application's Docker image
 └── pyproject.toml      # Project dependencies and metadata (Poetry)
 ```
 
